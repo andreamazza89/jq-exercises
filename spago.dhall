@@ -1,7 +1,6 @@
-{ name = "my-project"
+{ name = "jq-exercises"
 , dependencies =
   [ "aff"
-  , "console"
   , "effect"
   , "either"
   , "foldable-traversable"
