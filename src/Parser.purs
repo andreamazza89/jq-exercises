@@ -1,38 +1,43 @@
-module Parser where
+module Parser (parse) where
 
 import Prelude (bind, pure, ($), (&&), (/=), (<$>))
 
 import Data.Either (Either)
+import Data.Foldable as Foldable
+import Data.List.Types (NonEmptyList)
+import Data.String.CodeUnits as StringStuff
+import Filter (Filter(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser)
 import Text.Parsing.Parser.Combinators (choice, many1, try)
 import Text.Parsing.Parser.String (char, satisfy)
-import Filter (Filter(..))
-import Data.String.CodeUnits as StringStuff
-import Data.Foldable as Foldable
 
 parse :: String -> Either ParseError Filter
-parse input = runParser input filterParser
+parse input = runParser input parser
 
-filterParser :: Parser String Filter
-filterParser = do
-  choice [ try select, try identity ]
+parser :: Parser String Filter
+parser = do
+  choice [ try selectParser, try identityParser ]
 
-select :: Parser String Filter
-select = do
-  steps <- many1 selectorStep
-  pure $ Select (steps)
+selectParser :: Parser String Filter
+selectParser = do
+  keys <- many1 keyParser
+  pure $ Select (keys)
 
-selectorStep :: Parser String String
-selectorStep = do
+keyParser :: Parser String String
+keyParser = do
   _ <- char '.'
-  step <- Foldable.foldMap StringStuff.singleton <$> many1 selectorChars
-  pure step
+  key <- charsToString <$> many1 keyChars
+  pure key
 
-selectorChars :: Parser String Char
-selectorChars = do
+keyChars :: Parser String Char
+keyChars = do
  satisfy (\c -> c /= '.' && c /= ' ' )
 
-identity :: Parser String Filter
-identity = do
+charsToString :: NonEmptyList Char -> String
+charsToString =
+    Foldable.foldMap StringStuff.singleton
+
+identityParser :: Parser String Filter
+identityParser = do
   _ <- char '.'
   pure Identity
