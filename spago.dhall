@@ -9,6 +9,7 @@
   , "foldable-traversable"
   , "lists"
   , "maybe"
+  , "ordered-collections"
   , "parsing"
   , "prelude"
   , "psci-support"
