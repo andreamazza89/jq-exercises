@@ -1,17 +1,17 @@
-module Filter where
+module Expression where
 
 import Prelude (class Eq, class Show, show, (<>))
 
 import Data.List.Types (NonEmptyList)
 
-data Filter =
+data Expression =
     Identity
   | Select (NonEmptyList String)
-  | Pipe Filter Filter
+  | Pipe Expression Expression
 
-derive instance equalFilter :: Eq Filter
+derive instance equalExpression :: Eq Expression
 
-instance Show Filter where
+instance Show Expression where
   show Identity = "Identity"
   show (Select selector) = "Select " <> show selector
   show (Pipe l r) = show l <> " | " <> show r

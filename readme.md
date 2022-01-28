@@ -30,17 +30,16 @@ This is a learning project, with the following goals:
 
 There are two phases: compiling and interpreting.
 
-The compile phase takes jq source code and turns it into an abstract representation (I am using the term
-'filter', as that seems to be what jq calls a program).
+The compile phase takes jq source code and turns it into an abstract representation (`Expression`).
 
-The interpreter step takes the filter, along with input json and outputs json.
+The interpreter step takes the Expression, along with input json and outputs json.
 
 ```
 .. compile   ('.foo') -> Select "foo"
 String -> Either ParseError AST
 
 .. interpret {"foo": 32} -> (Select "foo") -> 32
-JSON -> Filter -> JSON
+JSON -> Expression -> JSON
 ```
 
 ---

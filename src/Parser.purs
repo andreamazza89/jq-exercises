@@ -10,16 +10,16 @@ import Data.List.Types (NonEmptyList)
 import Data.String.CodeUnits as StringStuff
 import Data.String as String
 import Data.String.Pattern (Pattern(..))
-import Filter (Filter(..))
+import Expression (Expression(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
 import Text.Parsing.Parser.Combinators (many1, try, optional, chainl)
 import Text.Parsing.Parser.String (anyChar, char, satisfy)
 import Data.String.CodeUnits (fromCharArray)
 
-parse :: String -> Either ParseError Filter
+parse :: String -> Either ParseError Expression
 parse input = runParser input parser
 
-parser :: Parser String Filter
+parser :: Parser String Expression
 parser =
   try pipeParser
     <|> try foo
@@ -28,11 +28,11 @@ foo =
   try selectParser
     <|> try identityParser
 
-pipeParser :: Parser String Filter
+pipeParser :: Parser String Expression
 pipeParser = do
   chainl foo (char '|' $> Pipe) Identity
 
-selectParser :: Parser String Filter
+selectParser :: Parser String Expression
 selectParser = do
   keys <- many1 keyParser
   pure $ Select (keys)
@@ -50,7 +50,7 @@ keyChars = do
 charsToString :: NonEmptyList Char -> String
 charsToString = Foldable.foldMap StringStuff.singleton
 
-identityParser :: Parser String Filter
+identityParser :: Parser String Expression
 identityParser = do
   optional $ char ' '
   _ <- char '.'
