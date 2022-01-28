@@ -64,6 +64,11 @@ JSON -> Expression -> JSON
 - Array vs List in Purescript - which to use when / is there a good default?
 - I wonder why the `chainl` combinator asks for a default value and returns that instead of failing
 - Is the pipe operator left associative?
+- I still need to wrap my head around how in jq pipes can have multiple outputs. For example, `[1,2,3][]` has 3 separate
+  outputs: `1`, `2` adn `3`, which is different from the array we start with (`[1,2,3]`). I am sure there are good reasons
+  for this, but I don't know what those are yet.
+  Maybe the answer is that this allows iteration, so that if you wanted to map the items in the example above to increment
+  by one, then you could do `[ [1,2,3][] | .+1 ]`
 
 ##  Things I've learned
 
