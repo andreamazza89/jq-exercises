@@ -23,11 +23,11 @@ main =
           it "identity" do
             testParser "." Identity
           it "select" do
-            testParser ".foo" $ Select (NonEmpty.singleton "foo")
+            testParser " .foo " $ Select (NonEmpty.singleton "foo")
           it "nested select" do
             testParser ".foo.bar" $ Select (NonEmpty.cons' "foo" $ List.singleton "bar")
           it "pipe" do
-            testParser ". | ." $ Pipe Identity Identity
+            testParser ". | .foo | ." $ Pipe (Pipe Identity (Select (NonEmpty.singleton "foo"))) Identity
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected

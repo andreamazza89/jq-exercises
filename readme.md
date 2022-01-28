@@ -62,7 +62,8 @@ JSON -> Expression -> JSON
 - For parsing should I write one using a parsing library or use something like Bison?
   - Just use a parsing library cause we want to run this in a browser
 - Array vs List in Purescript - which to use when / is there a good default?
-- I wonder why the `choice` combinator asks for a default value and returns that instead of failing
+- I wonder why the `chainl` combinator asks for a default value and returns that instead of failing
+- Is the pipe operator left associative?
 
 ##  Things I've learned
 

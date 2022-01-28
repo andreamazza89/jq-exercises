@@ -14,5 +14,6 @@ derive instance equalExpression :: Eq Expression
 instance Show Expression where
   show Identity = "Identity"
   show (Select selector) = "Select " <> show selector
-  show (Pipe l r) = show l <> " | " <> show r
+  show (Pipe l r) = "Pipe || " <> show l <> " , " <> show r <> " ||"
+
 

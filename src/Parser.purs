@@ -24,7 +24,9 @@ expressionParser =
 
 selectParser :: Parser String Expression
 selectParser = do
+  optional $ char ' '
   keys <- many1 keyParser
+  optional $ char ' '
   pure $ Select (keys)
 
 keyParser :: Parser String String
