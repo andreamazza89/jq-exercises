@@ -1,12 +1,13 @@
 module Test.Main where
 
 import Prelude (Unit, ($), discard)
-
+import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.List.NonEmpty (singleton, cons') as NonEmpty
 import Data.List (singleton) as List
 import Effect (Effect)
 import Effect.Aff (launchAff_)
+import Effect.Exception (Error)
 import Expression (Expression(..))
 import Parser (parse)
 import Test.Spec (describe, it)
@@ -20,11 +21,13 @@ main =
     $ runSpec [ consoleReporter ] do
         describe "Parsing Expressions" do
           it "identity" do
-            parse "." `shouldEqual` Right Identity
+            testParser "." Identity
           it "select" do
-            parse ".foo" `shouldEqual` Right (Select (NonEmpty.singleton "foo"))
+            testParser ".foo" $ Select (NonEmpty.singleton "foo")
           it "nested select" do
-            parse ".foo.bar" `shouldEqual` Right (Select (NonEmpty.cons' "foo" $ List.singleton "bar"))
+            testParser ".foo.bar" $ Select (NonEmpty.cons' "foo" $ List.singleton "bar")
           it "pipe" do
-            parse ". | ." `shouldEqual` Right (Pipe Identity Identity)
+            testParser ". | ." $ Pipe Identity Identity
 
+testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
+testParser source expected = parse source `shouldEqual` Right expected

@@ -15,8 +15,7 @@ parse :: String -> Either ParseError Expression
 parse input = runParser input parser
 
 parser :: Parser String Expression
-parser =
-  chainl expressionParser (char '|' $> Pipe) Identity
+parser = chainl expressionParser (char '|' $> Pipe) Identity
 
 expressionParser :: Parser String Expression
 expressionParser =
