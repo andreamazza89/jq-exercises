@@ -9,7 +9,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Filter (Filter(..))
 import Parser (parse)
-import Test.Spec (describe, it)
+import Test.Spec (describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpec)
@@ -25,3 +25,6 @@ main =
             parse ".foo" `shouldEqual` Right (Select (NonEmpty.singleton "foo"))
           it "nested select" do
             parse ".foo.bar" `shouldEqual` Right (Select (NonEmpty.cons' "foo" $ List.singleton "bar"))
+          it "pipe" do
+            parse ". | ." `shouldEqual` Right (Pipe Identity Identity)
+

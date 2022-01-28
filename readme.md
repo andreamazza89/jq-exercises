@@ -43,10 +43,14 @@ String -> Either ParseError AST
 JSON -> Filter -> JSON
 ```
 
-
+---
 ## Questions
 
-- should I use a Virtual Machine (jq does)? why?
+- Is hand-rolling a parser going to cut it, or will complexity explode as I include more language features?
+- What's backtracking in jq and what implications does it have for me? Can I just ignore to start with?
+- The documentation describes the language as having _second-class higher-order functions of dynamic extent_ - what does
+  this mean?
+- Should I use a Virtual Machine (jq does)? why?
   - I think jq does it for performance reasons, though cannot elaborate how/why?
   - Maybe portability? (though I'm not convinced by this as jq compiles to a binary)
   - Anyway, I don't think I should use a Virtual Machine, mainly to manage the level of complexity
@@ -60,3 +64,12 @@ JSON -> Filter -> JSON
   - Just use a parsing library cause we want to run this in a browser
 - Array vs List in Purescript - which to use when / is there a good default?
 
+##  Things I've learned
+
+### Left recursion
+When I started adding support for `Pipe` (`|`), I ran into the left recursion problem, which took me a while to even
+realise what the problem was. [This blog post](https://github.com/glebec/left-recursion) describes the issue really well
+and helped me climb out of that hole!
+
+The blog post above mentions [this page](https://www.csd.uwo.ca/~mmorenom/CS447/Lectures/Syntax.html/node8.html), which
+is a mathematical explanation of how the problem is solved. I'd love to be able to understand the math version.

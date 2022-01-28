@@ -1,6 +1,8 @@
 { name = "jq-exercises"
 , dependencies =
   [ "aff"
+  , "arrays"
+  , "control"
   , "effect"
   , "either"
   , "foldable-traversable"
