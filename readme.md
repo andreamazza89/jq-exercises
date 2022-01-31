@@ -1,17 +1,17 @@
 # Jq-exercises
 
-This is a learning project, with the following goals:
+This is a learning project, with the following high-level goals:
 
 - Build a compiler for a subset of the jq language
 - Use the above to build an app with jq exercises to learn jq
-- Learn jq myself as I do the above
+- Learn jq, and a bit about compilers as I do the above
 
 ## Short term Goals
 
 - find out what I don't know
 - define an architecture
 - pick a subset of the language to target
-- implement compiler + interpreter (is that what it's called) for the subset
+- implement compiler + interpreter (is that what it's called?) for the subset
 
 ## Medium term Goals
 
@@ -24,7 +24,7 @@ This is a learning project, with the following goals:
   - syntax highlighting
   - autocomplete
   - helpful error messages (elm-like)
-  - module system (probably more than I could chew..)
+  - module system (this one is probably more than I can chew..)
     
 ## Architecture
 
@@ -32,7 +32,7 @@ There are two phases: compiling and interpreting.
 
 The compile phase takes jq source code and turns it into an abstract representation (`Expression`).
 
-The interpreter step takes the Expression, along with input json and outputs json.
+The interpreter step takes the Expression, along with input json and returns json.
 
 ```
 .. compile   ('.foo') -> Select "foo"
@@ -62,8 +62,12 @@ JSON -> Expression -> JSON
 - For parsing should I write one using a parsing library or use something like Bison?
   - Just use a parsing library cause we want to run this in a browser
 - Array vs List in Purescript - which to use when / is there a good default?
-- I wonder why the `chainl` combinator asks for a default value and returns that instead of failing
+  - Aside from performance (which I am not going to be concerned about), I think Array should be the default as the literal syntax
+    desugars to this type and not List.
+- I wonder why the `chainl` combinator asks for a default value and returns that instead of failing?
 - Is the pipe operator left associative?
+  - I think so, as the evaluation happens left to right, like this: `f(x) | g(f(x)) | h(g(f(x)))`, whereas if it was
+    right-associative it would be like ` h(g(f(x))) | f(x) | g(f(x))`
 - I still need to wrap my head around how in jq pipes can have multiple outputs. For example, `[1,2,3][]` has 3 separate
   outputs: `1`, `2` adn `3`, which is different from the array we start with (`[1,2,3]`). I am sure there are good reasons
   for this, but I don't know what those are yet.
