@@ -1,8 +1,9 @@
-module Json (Json(..)) where
+module Json (Json(..), at) where
 
 
-import Prelude (class Eq, class Show)
-import Data.Map (Map)
+import Prelude (class Eq, class Show, ($))
+import Data.Map (Map, lookup)
+import Data.Maybe (fromMaybe)
 
 data Json
   = JNull
@@ -16,3 +17,8 @@ derive instance equalJson :: Eq Json
 
 instance Show Json where
   show _ = "TODO: Show Json"
+
+at :: String -> Json -> Json
+at key (JObject object) =
+  fromMaybe JNull $ lookup key object
+at _ _ = JNull

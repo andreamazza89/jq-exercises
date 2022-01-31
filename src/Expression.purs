@@ -7,7 +7,6 @@ import Data.Maybe
 
 data Expression
   = Identity
-  | Select (NonEmptyList String)
   | Accessor Over Path
   | Pipe Expression Expression
 
@@ -29,6 +28,5 @@ derive instance equalTarget :: Eq Target
 
 instance Show Expression where
   show Identity = "Identity"
-  show (Select selector) = "Select " <> show selector
   show (Pipe l r) = "Pipe || " <> show l <> " , " <> show r <> " ||"
   show (Accessor _ _) = "TODO"
