@@ -1,6 +1,5 @@
 module Json (Json(..), at) where
 
-
 import Prelude (class Eq, class Show, ($), show)
 import Data.Map (Map, lookup)
 import Data.Maybe (fromMaybe)
@@ -24,6 +23,6 @@ instance Show Json where
   show (JObject o) = show o
 
 at :: String -> Json -> Json
-at key (JObject object) =
-  fromMaybe JNull $ lookup key object
+at key (JObject object) = fromMaybe JNull $ lookup key object
+
 at _ _ = JNull

@@ -13,7 +13,8 @@ data Expression
   | Pipe Expression Expression
 
 -- This ought to be a NonEmptyArray, but I'm making a compromise to be able to use array literals
-type Path = Array Target
+type Path
+  = Array Target
 
 data Over
   = AnExpression Expression
@@ -25,7 +26,9 @@ data Target
   | WholeArray
 
 derive instance equalExpression :: Eq Expression
+
 derive instance equalOver :: Eq Over
+
 derive instance equalTarget :: Eq Target
 
 instance Show Expression where
