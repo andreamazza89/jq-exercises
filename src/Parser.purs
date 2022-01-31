@@ -2,11 +2,10 @@ module Parser (parse) where
 
 import Prelude (bind, discard, pure, ($), (&&), (/=), (<$>), ($>), (<<<))
 import Control.Alt ((<|>))
-import Data.Array
+import Data.Array (many)
 import Data.Either (Either)
 import Data.Foldable as Foldable
 import Data.List.Types (NonEmptyList)
-import Data.Maybe
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser)

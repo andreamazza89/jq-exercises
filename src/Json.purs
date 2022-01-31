@@ -1,7 +1,7 @@
 module Json (Json(..), at) where
 
 
-import Prelude (class Eq, class Show, ($))
+import Prelude (class Eq, class Show, ($), show)
 import Data.Map (Map, lookup)
 import Data.Maybe (fromMaybe)
 
@@ -16,7 +16,12 @@ data Json
 derive instance equalJson :: Eq Json
 
 instance Show Json where
-  show _ = "TODO: Show Json"
+  show JNull = "null"
+  show (JString s) = s
+  show (JNumber n) = show n
+  show (JBoolean b) = show b
+  show (JArray a) = show a
+  show (JObject o) = show o
 
 at :: String -> Json -> Json
 at key (JObject object) =
