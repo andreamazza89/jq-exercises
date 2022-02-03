@@ -45,7 +45,6 @@ JSON -> Expression -> JSON
 ---
 ## Questions
 
-- Is hand-rolling a parser going to cut it, or will complexity explode as I include more language features?
 - What's backtracking in jq and what implications does it have for me? Can I just ignore to start with?
 - The documentation describes the language as having _second-class higher-order functions of dynamic extent_ - what does
   this mean?
