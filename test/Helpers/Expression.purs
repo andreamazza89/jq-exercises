@@ -1,23 +1,27 @@
 module Helpers.Expression where
 
-import Prelude (($))
-import Expression (Expression(..), Over(..), Target(..))
+import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
-import Data.Maybe (fromMaybe)
 import Data.Functor (map)
+import Data.Maybe (fromMaybe)
+import Expression (Expression(..), Over(..), Target(..))
+import Prelude (($), (>>>))
 
 -- Helpers to build Expressions
 accessByKeyNames :: Array String -> Expression
-accessByKeyNames keys = (Accessor Input (map Key (fromMaybe (NE.singleton "fix me") $ NE.fromArray keys)))
+accessByKeyNames = map Key >>> accessor
 
 accessByIndex :: Array Int -> Expression
-accessByIndex indexes = (Accessor Input (map AtIndex (fromMaybe (NE.singleton 42) $ NE.fromArray indexes)))
+accessByIndex = map AtIndex >>> accessor
 
 accessAllItems :: Expression
 accessAllItems = Accessor Input (NE.singleton AllItems)
 
 accessor ∷ Array Target → Expression
-accessor targets = Accessor Input (fromMaybe (NE.singleton $ Key "fix me") $ NE.fromArray targets)
+accessor = toNonEmpty >>> Accessor Input
+
+toNonEmpty :: Array Target -> NonEmptyArray Target
+toNonEmpty = NE.fromArray >>> fromMaybe (NE.singleton $ Key "ERROR - empty path")
 
 atKey :: String -> Target
 atKey = Key
@@ -33,4 +37,5 @@ identity = Identity
 
 pipe :: Expression -> Expression -> Expression
 pipe = Pipe
+
 infixl 6 pipe as ||
