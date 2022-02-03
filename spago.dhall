@@ -7,6 +7,7 @@
   , "either"
   , "exceptions"
   , "foldable-traversable"
+  , "integers"
   , "lists"
   , "maybe"
   , "ordered-collections"

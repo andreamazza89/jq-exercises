@@ -14,7 +14,7 @@ import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser)
 import Text.Parsing.Parser.Combinators (between, many1, try, optional, chainl)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.String (skipSpaces, char, satisfy)
 
 parse :: String -> Either ParseError Expression
 parse input = runParser input parser
@@ -29,9 +29,9 @@ expressionParser =
 
 accessorParser :: Parser String Expression
 accessorParser = do
-  optional $ char ' '
+  skipSpaces
   keys <- fromMaybe (NE.singleton (Key "redo")) <<< NE.fromFoldable <$> many1 targetParser
-  optional $ char ' '
+  skipSpaces
   pure $ Accessor Input keys
 
 targetParser :: Parser String Target
@@ -40,13 +40,13 @@ targetParser = do
 
 atIndex :: Parser String Target
 atIndex = do
-  _ <- optional $ char '.'
+  _ <- optional dot
   index <- between (char '[') (char ']') (fromMaybe 666 <<< fromString <<< charsToString <$> many1 (satisfy (isDecDigit <<< codePointFromChar)))
   pure $ AtIndex index
 
 atKey  :: Parser String Target
 atKey = do
-  _ <- char '.'
+  _ <- dot
   key <- Key <<< charsToString <$> many1 keyChars
   pure key
 
@@ -60,7 +60,7 @@ keyChars = do
 
 wholeArray  :: Parser String Target
 wholeArray = do
-  _ <- optional $ char '.'
+  _ <- optional dot
   _ <- char '['
   _ <- char ']'
   pure AllItems
@@ -70,7 +70,10 @@ charsToString = Foldable.foldMap singleton
 
 identityParser :: Parser String Expression
 identityParser = do
-  optional $ char ' '
-  _ <- char '.'
-  optional $ char ' '
+  skipSpaces
+  _ <- dot
+  skipSpaces
   pure Identity
+
+dot :: Parser String Char
+dot = char '.'
