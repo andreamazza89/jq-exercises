@@ -1,6 +1,6 @@
 module Parser (parse) where
 
-import Prelude (bind, discard, not, pure, ($), (#), ($>), (*>), (&&), (/=), (<$>), (<<<), (>>>))
+import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Control.Alt ((<|>))
 import Data.Int (fromString)
 import Data.Array.NonEmpty (fromFoldable, singleton) as NE
