@@ -2,7 +2,7 @@ module Expression (Expression(..), Over(..), Path, Target(..)) where
 
 import Prelude (class Eq, class Show, show, (<>))
 import Data.List.Types (NonEmptyList)
-import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Maybe
 import Data.String (joinWith)
 import Data.Functor (map)
@@ -14,7 +14,7 @@ data Expression
 
 -- This ought to be a NonEmptyArray, but I'm making a compromise to be able to use array literals
 type Path
-  = Array Target
+  = NonEmptyArray Target
 
 data Over
   = AnExpression Expression
@@ -23,7 +23,7 @@ data Over
 data Target
   = Key String
   | AtIndex Int
-  | WholeArray
+  | AllItems
 
 derive instance equalExpression :: Eq Expression
 
@@ -38,9 +38,9 @@ instance Show Expression where
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path
 
 joinPath :: Path -> String
-joinPath path = joinWith "." (map show path)
+joinPath path = joinWith "." (map show (toArray path))
 
 instance Show Target where
-  show (Key k) = k
+  show (Key k) = "\'" <> k <> "\'"
   show (AtIndex index) = "[" <> show index <> "]"
-  show WholeArray = "[]"
+  show AllItems = "[]"

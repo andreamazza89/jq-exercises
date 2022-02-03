@@ -17,6 +17,7 @@
   , "strings"
   , "transformers"
   , "tuples"
+  , "unicode"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

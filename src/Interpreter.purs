@@ -2,7 +2,7 @@ module Interpreter (run) where
 
 import Prelude (($))
 import Data.Either (Either(..))
-import Data.Array (foldl)
+import Data.Foldable
 import Expression (Expression(..), Target(..))
 import Json (Json, at)
 
