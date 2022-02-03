@@ -26,10 +26,10 @@ main = do
       it "iterate all items" do
         testParser ".[]" $ accessAllItems
       it "mixed access" do
-        testParser ".foo[3].bar[]" $ accessor [atKey "foo", atIndex 3, atKey "bar", allItems]
+        testParser ".foo[3].bar[]" $ accessor [ atKey "foo", atIndex 3, atKey "bar", allItems ]
     describe "Pipes" do
       it "pipe" do
-        testParser ". | .foo | ." $ identity || accessByKeyNames ["foo" ] || identity
+        testParser ". | .foo | ." $ identity || accessByKeyNames [ "foo" ] || identity
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected

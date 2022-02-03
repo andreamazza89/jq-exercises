@@ -16,16 +16,21 @@ accessByIndex indexes = (Accessor Input (map AtIndex (fromMaybe (NE.singleton 42
 accessAllItems :: Expression
 accessAllItems = Accessor Input (NE.singleton AllItems)
 
+accessor ∷ Array Target → Expression
 accessor targets = Accessor Input (fromMaybe (NE.singleton $ Key "fix me") $ NE.fromArray targets)
 
+atKey :: String -> Target
 atKey = Key
 
+atIndex :: Int -> Target
 atIndex = AtIndex
 
+allItems :: Target
 allItems = AllItems
 
 identity :: Expression
 identity = Identity
 
+pipe :: Expression -> Expression -> Expression
 pipe = Pipe
 infixl 6 pipe as ||

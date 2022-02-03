@@ -1,9 +1,7 @@
 module Expression (Expression(..), Over(..), Path, Target(..)) where
 
 import Prelude (class Eq, class Show, show, (<>))
-import Data.List.Types (NonEmptyList)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
-import Data.Maybe
 import Data.String (joinWith)
 import Data.Functor (map)
 
@@ -12,7 +10,6 @@ data Expression
   | Accessor Over Path
   | Pipe Expression Expression
 
--- This ought to be a NonEmptyArray, but I'm making a compromise to be able to use array literals
 type Path
   = NonEmptyArray Target
 

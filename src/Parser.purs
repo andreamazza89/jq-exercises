@@ -3,14 +3,14 @@ module Parser (parse) where
 import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Control.Alt ((<|>))
 import Data.Int (fromString)
-import Data.Array.NonEmpty (fromFoldable, singleton) as NE
+import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isDecDigit, isSpace)
 import Data.String.CodePoints (codePointFromChar)
 import Data.Either (Either)
 import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.List.Types (NonEmptyList)
-import Data.Maybe (Maybe, fromMaybe, maybe)
+import Data.Maybe (Maybe, maybe)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
@@ -80,9 +80,7 @@ identityParser = do
   skipSpaces
   pure Identity
 
-
 -- Helpers
-
 charsToString :: NonEmptyList Char -> String
 charsToString = Foldable.foldMap singleton
 
