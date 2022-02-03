@@ -1,6 +1,6 @@
 module Parser (parse) where
 
-import Prelude (bind, discard, not, pure, ($), ($>), (*>), (&&), (/=), (<$>), (<<<))
+import Prelude (bind, discard, not, pure, ($), (#), ($>), (*>), (&&), (/=), (<$>), (<<<), (>>>))
 import Control.Alt ((<|>))
 import Data.Int (fromString)
 import Data.Array.NonEmpty (fromFoldable, singleton) as NE
@@ -8,8 +8,9 @@ import Data.CodePoint.Unicode (isDecDigit, isSpace)
 import Data.String.CodePoints (codePointFromChar)
 import Data.Either (Either)
 import Data.Foldable as Foldable
+import Data.Functor (map)
 import Data.List.Types (NonEmptyList)
-import Data.Maybe (fromMaybe, maybe)
+import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
@@ -23,16 +24,19 @@ parser :: Parser String Expression
 parser = chainl expressionParser (char '|' $> Pipe) Identity
 
 expressionParser :: Parser String Expression
-expressionParser =
-  try accessorParser
-    <|> try identityParser
+expressionParser = try accessorParser <|> try identityParser
 
 accessorParser :: Parser String Expression
 accessorParser = do
   skipSpaces
-  keys <- fromMaybe (NE.singleton (Key "redo")) <<< NE.fromFoldable <$> many1 targetParser
+  targets <- targetsParser
   skipSpaces
-  pure $ Accessor Input keys
+  pure $ Accessor Input targets
+  where
+  targetsParser =
+    many1 targetParser
+      # map NE.fromFoldable
+      # required
 
 targetParser :: Parser String Target
 targetParser = do
@@ -44,26 +48,30 @@ atIndex = do
   index <- inSquares intParser
   pure $ AtIndex index
 
-atKey  :: Parser String Target
+atKey :: Parser String Target
 atKey = do
   _ <- dot
-  key <- Key <<< charsToString <$> many1 keyChars
+  key <-
+    many1 keyChars
+      # map (charsToString >>> Key)
   pure key
 
 keyChars :: Parser String Char
 keyChars = do
   satisfy ((\c -> isNotSpace c && isNotIdentity c && isNotSquareBracket c) <<< codePointFromChar)
   where
-    isNotIdentity = (/=) (codePointFromChar '.')
-    isNotSpace = not <<< isSpace
-    isNotSquareBracket c = c /= (codePointFromChar '[') && c /= (codePointFromChar ']')
+  isNotIdentity = (/=) (codePointFromChar '.')
 
-wholeArray  :: Parser String Target
-wholeArray =
-  optional dot *> openSquare *> closeSquare *> pure AllItems
+  isNotSpace = not <<< isSpace
 
-charsToString :: NonEmptyList Char -> String
-charsToString = Foldable.foldMap singleton
+  isNotSquareBracket c = c /= (codePointFromChar '[') && c /= (codePointFromChar ']')
+
+wholeArray :: Parser String Target
+wholeArray = do
+  _ <- optional dot
+  _ <- openSquare
+  _ <- closeSquare
+  pure AllItems
 
 identityParser :: Parser String Expression
 identityParser = do
@@ -72,16 +80,25 @@ identityParser = do
   skipSpaces
   pure Identity
 
+
+-- Helpers
+
+charsToString :: NonEmptyList Char -> String
+charsToString = Foldable.foldMap singleton
+
+charsToInt :: NonEmptyList Char -> Maybe Int
+charsToInt = charsToString >>> fromString
+
 intParser :: Parser String Int
-intParser = do
-  n <- fromString <<< charsToString <$> many1 digit
-  maybe (fail "failed to parser integer") pure n
+intParser =
+  many1 digit
+    # map charsToInt
+    # required
 
 digit :: Parser String Char
-digit =
-    satisfy (isDecDigit <<< codePointFromChar)
+digit = satisfy (isDecDigit <<< codePointFromChar)
 
-inSquares :: forall a . Parser String a -> Parser String a
+inSquares :: forall a. Parser String a -> Parser String a
 inSquares = between openSquare closeSquare
 
 openSquare :: Parser String Char
@@ -92,3 +109,8 @@ closeSquare = char ']'
 
 dot :: Parser String Char
 dot = char '.'
+
+required :: forall a. Parser String (Maybe a) -> Parser String a
+required maybeParser = do
+  a <- maybeParser
+  maybe (fail "value must exist") pure a
