@@ -71,7 +71,7 @@ wholeArray = do
   _ <- optional dot
   _ <- openSquare
   _ <- closeSquare
-  pure AllItems
+  pure Each
 
 identityParser :: Parser String Expression
 identityParser = do

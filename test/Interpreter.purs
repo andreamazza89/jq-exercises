@@ -25,10 +25,8 @@ main = do
   where
   input =
     obj
-      [ "foo"
-          : obj
-              [ "bar" : str "ciao"
-              ]
+      [ "foo" :
+        obj [ "bar" : str "ciao" ]
       ]
 
 test :: forall a. MonadThrow Error a => Expression -> Json -> Json -> a Unit

@@ -2,9 +2,10 @@ module Interpreter (run) where
 
 import Prelude (($))
 import Data.Either (Either(..))
-import Data.Foldable
+import Data.Foldable (foldl)
 import Expression (Expression(..), Target(..))
-import Json (Json, at)
+import Json (at) as Json
+import Json (Json)
 
 -- 2 open questions that will affect the return type:
 --   1 - Does this operation ever fail, or just default to Null? As in, given a valid expression and Json, can this ever
@@ -16,6 +17,6 @@ run (Accessor _ path) input = Right $ foldl accumulator input path
 run _ input = Right input
 
 accumulator :: Json -> Target -> Json
-accumulator acc (Key k) = at k acc
+accumulator acc (Key k) = Json.at k acc
 
 accumulator acc _ = acc

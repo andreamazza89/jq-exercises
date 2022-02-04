@@ -15,7 +15,7 @@ accessByIndex :: Array Int -> Expression
 accessByIndex = map AtIndex >>> accessor
 
 accessAllItems :: Expression
-accessAllItems = Accessor Input (NE.singleton AllItems)
+accessAllItems = Accessor Input (NE.singleton Each)
 
 accessor ∷ Array Target → Expression
 accessor = toNonEmpty >>> Accessor Input
@@ -30,7 +30,7 @@ atIndex :: Int -> Target
 atIndex = AtIndex
 
 allItems :: Target
-allItems = AllItems
+allItems = Each
 
 identity :: Expression
 identity = Identity

@@ -20,7 +20,7 @@ data Over
 data Target
   = Key String
   | AtIndex Int
-  | AllItems
+  | Each
 
 derive instance equalExpression :: Eq Expression
 
@@ -40,4 +40,4 @@ joinPath path = joinWith "." (map show (toArray path))
 instance Show Target where
   show (Key k) = "\'" <> k <> "\'"
   show (AtIndex index) = "[" <> show index <> "]"
-  show AllItems = "[]"
+  show Each = "[]"
