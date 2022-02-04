@@ -1,12 +1,15 @@
 module Parser (parse) where
 
 import Json
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.Array (all)
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isDecDigit, isSpace)
 import Data.Either (Either)
 import Data.Foldable as Foldable
+import Data.Function (flip)
 import Data.Functor (map)
 import Data.Int (fromString, toNumber)
 import Data.List.Types (NonEmptyList)
@@ -80,13 +83,13 @@ atKey = do
 
 keyChars :: Parser String Char
 keyChars = do
-  satisfy ((\c -> isNotSpace c && isNotIdentity c && isNotSquareBracket c) <<< codePointFromChar)
+  satisfy (\ch -> all (\test -> test ch) [isNotIdentity, isNotSpace, isNotSquareBracket])
   where
-  isNotIdentity = (/=) (codePointFromChar '.')
+  isNotIdentity = (/=) '.'
 
-  isNotSpace = not <<< isSpace
+  isNotSpace = not <<< isSpace <<< codePointFromChar
 
-  isNotSquareBracket c = c /= (codePointFromChar '[') && c /= (codePointFromChar ']')
+  isNotSquareBracket c = c /= '[' && c /= ']'
 
 wholeArray :: Parser String Target
 wholeArray = do
