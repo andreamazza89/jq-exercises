@@ -1,12 +1,13 @@
 module Test.Parser where
 
-import Prelude (Unit, ($), discard)
+import Helpers.Expression
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Effect.Exception (Error)
 import Expression (Expression)
-import Helpers.Expression (identity, accessor, accessByKeyNames, accessByIndex, accessAllItems, atKey, atIndex, allItems, (||))
 import Parser (parse)
+import Prelude (Unit, ($), discard)
+import Test.Helpers.Json (num)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -30,6 +31,11 @@ main = do
     describe "Pipes" do
       it "pipe" do
         testParser ". | .foo | ." $ identity || accessByKeyNames [ "foo" ] || identity
+    describe "ArrayConstructor" do
+      it "array of identity" do
+        testParser "[.]" $ constructArray identity
+      it "array of literals" do
+        testParser "[42]" $ constructArray (literal (num 42.0))
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected

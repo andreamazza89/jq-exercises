@@ -1,18 +1,19 @@
 module Parser (parse) where
 
-import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Control.Alt ((<|>))
-import Data.Int (fromString)
+import Control.Lazy (fix)
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isDecDigit, isSpace)
-import Data.String.CodePoints (codePointFromChar)
 import Data.Either (Either)
 import Data.Foldable as Foldable
 import Data.Functor (map)
+import Data.Int (fromString)
 import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe, maybe)
+import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
+import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
 import Text.Parsing.Parser.Combinators (between, many1, try, optional, chainl)
 import Text.Parsing.Parser.String (skipSpaces, char, satisfy)
@@ -21,10 +22,13 @@ parse :: String -> Either ParseError Expression
 parse input = runParser input parser
 
 parser :: Parser String Expression
-parser = chainl expressionParser (char '|' $> Pipe) Identity
+parser = fix (\p -> chainl (expressionParser p) (char '|' $> Pipe) Identity)
 
-expressionParser :: Parser String Expression
-expressionParser = try accessorParser <|> try identityParser
+expressionParser :: Parser String Expression -> Parser String Expression
+expressionParser p =
+  try (arrayConstructorParser p)
+    <|> try accessorParser
+    <|> try identityParser
 
 accessorParser :: Parser String Expression
 accessorParser = do
@@ -37,6 +41,13 @@ accessorParser = do
     many1 targetParser
       # map NE.fromFoldable
       # required
+
+arrayConstructorParser :: Parser String Expression -> Parser String Expression
+arrayConstructorParser p = do
+  _ <- openSquare
+  expr <- p
+  _ <- closeSquare
+  pure (ArrayConstructor expr)
 
 targetParser :: Parser String Target
 targetParser = do

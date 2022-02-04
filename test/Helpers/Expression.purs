@@ -1,10 +1,25 @@
-module Helpers.Expression where
+module Helpers.Expression
+  ( (||)
+  , accessAllItems
+  , accessByIndex
+  , accessByKeyNames
+  , accessor
+  , allItems
+  , atIndex
+  , atKey
+  , constructArray
+  , identity
+  , literal
+  , pipe
+  , toNonEmpty
+  ) where
 
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
 import Data.Functor (map)
 import Data.Maybe (fromMaybe)
 import Expression (Expression(..), Over(..), Target(..))
+import Json (Json)
 import Prelude (($), (>>>))
 
 -- Helpers to build Expressions
@@ -13,6 +28,12 @@ accessByKeyNames = map Key >>> accessor
 
 accessByIndex :: Array Int -> Expression
 accessByIndex = map AtIndex >>> accessor
+
+constructArray :: Expression -> Expression
+constructArray = ArrayConstructor
+
+literal :: Json -> Expression
+literal = Literal
 
 accessAllItems :: Expression
 accessAllItems = Accessor Input (NE.singleton Each)

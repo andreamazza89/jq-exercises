@@ -1,13 +1,16 @@
 module Expression (Expression(..), Over(..), Path, Target(..)) where
 
-import Prelude (class Eq, class Show, show, (<>))
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
-import Data.String (joinWith)
 import Data.Functor (map)
+import Data.String (joinWith)
+import Json (Json)
+import Prelude (class Eq, class Show, show, (<>))
 
 data Expression
   = Identity
   | Accessor Over Path
+  | Literal Json
+  | ArrayConstructor Expression 
   | Pipe Expression Expression
 
 type Path
@@ -31,6 +34,8 @@ derive instance equalTarget :: Eq Target
 instance Show Expression where
   show Identity = "Identity"
   show (Pipe l r) = show l <> " || " <> show r
+  show (ArrayConstructor expr) = "[ " <> show expr <> " ]"
+  show (Literal json) = show json
   show (Accessor Input path) = "." <> joinPath path
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path
 
