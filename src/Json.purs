@@ -22,6 +22,7 @@ instance Show Json where
   show (JArray a) = show a
   show (JObject o) = show o
 
+-- Manipulate
 at :: String -> Json -> Json
 at key (JObject object) = fromMaybe JNull $ lookup key object
 

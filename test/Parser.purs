@@ -14,6 +14,9 @@ import Test.Spec.Assertions (shouldEqual)
 main :: Spec Unit
 main = do
   describe "Parsing Expressions" do
+    describe "Literal" do
+      it "number" do
+        testParser "42" $ literal (num 42.0)
     describe "Identity" do
       it "identity" do
         testParser "." identity
@@ -35,7 +38,7 @@ main = do
       it "array of identity" do
         testParser "[.]" $ constructArray identity
       it "array of literals" do
-        testParser "[42]" $ constructArray (literal (num 42.0))
+        testParser "[ 42 ]" $ constructArray (literal (num 42.0))
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected
