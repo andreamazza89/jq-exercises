@@ -36,11 +36,15 @@ main = do
         testParser ". | .foo | ." $ identity || accessByKeyNames [ "foo" ] || identity
     describe "ArrayConstructor" do
       it "array of identity" do
-        testParser "[.]" $ constructArray identity
+        testParser "[ . ]" $ constructArray identity
       it "array of literals" do
         testParser "[ 42 ]" $ constructArray (literal (num 42.0))
       it "array with pipe in it" do
         testParser "[ 42 | . ]" $ constructArray (literal (num 42.0) || identity)
+      it "nested array" do
+        testParser "[ [ 42 ] ]" $ constructArray (constructArray (literal (num 42.0)))
+      it "array and then pipe" do
+        testParser "[ 42 ] | ." $ constructArray (literal (num 42.0)) || identity
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected

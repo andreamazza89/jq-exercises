@@ -17,13 +17,17 @@ import Expression (Expression(..), Over(..), Target(..))
 import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
 import Text.Parsing.Parser.Combinators (between, many1, try, optional, chainl)
-import Text.Parsing.Parser.String (skipSpaces, char, satisfy)
+import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
 
 parse :: String -> Either ParseError Expression
 parse input = runParser input parser
 
 parser :: Parser String Expression
-parser = fix (\p -> chainl (expressionParser p) (char '|' $> Pipe) Identity)
+parser =
+  fix
+    ( \p ->
+        chainl (expressionParser p) (char '|' $> Pipe) Identity
+    )
 
 expressionParser :: Parser String Expression -> Parser String Expression
 expressionParser p =
@@ -34,22 +38,20 @@ expressionParser p =
 
 literalParser :: Parser String Expression
 literalParser = do
-  skipSpaces
-  literal <- intParser # map (toNumber >>> JNumber >>> Literal)
-  skipSpaces
-  pure literal
+  intParser
+    # map (toNumber >>> JNumber >>> Literal)
+    # spaced
 
 accessorParser :: Parser String Expression
 accessorParser = do
-  skipSpaces
   targets <- targetsParser
-  skipSpaces
   pure $ Accessor Input targets
   where
   targetsParser =
     many1 targetParser
       # map NE.fromFoldable
       # required
+      # spaced
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
 arrayConstructorParser p = do
@@ -95,9 +97,7 @@ wholeArray = do
 
 identityParser :: Parser String Expression
 identityParser = do
-  skipSpaces
-  _ <- dot
-  skipSpaces
+  _ <- spaced dot
   pure Identity
 
 -- Helpers
@@ -120,10 +120,10 @@ inSquares :: forall a. Parser String a -> Parser String a
 inSquares = between openSquare closeSquare
 
 openSquare :: Parser String Char
-openSquare = char '['
+openSquare = spaced $ char '['
 
 closeSquare :: Parser String Char
-closeSquare = char ']'
+closeSquare = spaced $ char ']'
 
 dot :: Parser String Char
 dot = char '.'
@@ -132,3 +132,10 @@ required :: forall a. Parser String (Maybe a) -> Parser String a
 required maybeParser = do
   a <- maybeParser
   maybe (fail "value must exist") pure a
+
+spaced :: forall a. Parser String a -> Parser String a
+spaced p = do
+  skipSpaces
+  value <- p
+  skipSpaces
+  pure value
