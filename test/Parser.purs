@@ -38,7 +38,7 @@ main = do
       it "array of identity" do
         testParser "[ . ]" $ constructArray identity
       it "array of literals" do
-        testParser "[ 42 ]" $ constructArray (literal (num 42.0))
+        testParser "[ 42.42 ]" $ constructArray (literal (num 42.42))
       it "array with pipe in it" do
         testParser "[ 42 | . ]" $ constructArray (literal (num 42.0) || identity)
       it "nested array" do

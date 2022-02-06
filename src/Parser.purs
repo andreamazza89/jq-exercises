@@ -9,7 +9,6 @@ import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isDecDigit, isSpace)
 import Data.Either (Either)
 import Data.Foldable as Foldable
-import Data.Function (flip)
 import Data.Functor (map)
 import Data.Int (fromString, toNumber)
 import Data.List.Types (NonEmptyList)
@@ -17,6 +16,7 @@ import Data.Maybe (Maybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
+import Json as Json
 import Prelude (bind, discard, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
 import Text.Parsing.Parser (ParseError, runParser, Parser, fail)
 import Text.Parsing.Parser.Combinators (between, many1, try, optional, chainl)
@@ -41,8 +41,8 @@ expressionParser p =
 
 literalParser :: Parser String Expression
 literalParser = do
-  intParser
-    # map (toNumber >>> JNumber >>> Literal)
+  Json.parser
+    # map Literal
     # spaced
 
 accessorParser :: Parser String Expression
