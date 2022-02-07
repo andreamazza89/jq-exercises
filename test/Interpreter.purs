@@ -1,10 +1,12 @@
 module Test.Interpreter where
 
+import Helpers.Expression
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression)
-import Helpers.Expression
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard)
@@ -19,7 +21,7 @@ main = do
       it "identity" do
         test identity
           "4.2"
-          "4.2"
+          [ "4.2" ]
     describe "Accessor" do
       it "gets the value in the object at the given keys" do
         test (accessByKeyNames [ "foo", "bar" ])
@@ -28,13 +30,13 @@ main = do
               "foo": { "bar": "ciao" }
             }
           """
-          "\"ciao\""
+          [ "\"ciao\"" ]
       it "gets the value in the array at the given index" do
         test (accessByIndex [ 1 ])
           """
             ["ciao", "miao"]
           """
-          "\"miao\""
+          [ "\"miao\"" ]
       it "gets the value at the given mixed path" do
         test (accessor [ atKey "ciao", atIndex 1, atKey "miao" ])
           """
@@ -46,19 +48,33 @@ main = do
               "somethingElse": 33
             }
           """
-          "true"
-    describe "Pipe" do
-      it "simple pipe" do
-        test (accessByIndex [0] || identity)
+          [ "true" ]
+      it "iterates over the items of an array" do
+        test (accessAllItems)
           """
             ["ciao", "miao"]
           """
-          "\"ciao\""
+          [ "\"ciao\"", "\"miao\"" ]
+      it "nested array iteration" do
+        test (accessAllItems || accessByKeyNames [ "nest" ] || accessAllItems)
+          """
+            [
+              { "nest" : [33, "wat"] },
+              { "nest" : [true, "gotta love mixing types"] }
+            ]
+          """
+          [ "33", "\"wat\"", "true", "\"gotta love mixing types\"" ]
+    describe "Pipe" do
+      it "simple pipe" do
+        test (accessByIndex [ 0 ] || identity)
+          """
+            ["ciao", "miao"]
+          """
+          [ "\"ciao\"" ]
 
-test :: forall a. MonadThrow Error a => Expression -> String -> String -> a Unit
-test expression input expectedOutput =
-  case [ parseJson input, parseJson expectedOutput ] of
-    [ Right i, Right o ] -> Interpreter.run expression [i] `shouldEqual` (Right [o])
-    _ -> fail "failed to parse JSON"
+test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
+test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of
+  Tuple (Right i) (Right o) -> Interpreter.run expression [ i ] `shouldEqual` (Right o)
+  _ -> fail "failed to parse JSON"
   where
-    parseJson s = runParser s Json.parser
+  parseJson s = runParser s Json.parser

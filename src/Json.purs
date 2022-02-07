@@ -1,4 +1,10 @@
-module Json (Json(..), atKey, atIndex, parser) where
+module Json
+  ( Json(..)
+  , atIndex
+  , atKey
+  , parser
+  , values
+  ) where
 
 import Utils.Parsing
 
@@ -10,8 +16,8 @@ import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.Map (Map)
-import Data.Map (lookup, fromFoldable) as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Map (fromFoldable, lookup, values) as Map
+import Data.Maybe (Maybe(..))
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
 import Data.Tuple (Tuple(..))
@@ -47,6 +53,12 @@ atKey _ _ = Nothing
 atIndex :: Int -> Json -> Maybe Json
 atIndex index (JArray array) = Array.index array index
 atIndex _ _ = Nothing
+
+values :: Json -> Maybe (Array Json)
+values (JArray array) = Just array
+values (JObject object) = Just (Map.values object # Array.fromFoldable)
+values _ = Nothing
+
 -- Parse
 parser :: Parser String Json
 parser =
