@@ -2,18 +2,19 @@ module Json (Json(..), at, parser) where
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (fromFoldable, many)
+import Data.Array (fromFoldable) as Array
+import Data.Array (many)
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
-import Data.Int (fromString) as Int
-import Data.List.NonEmpty (NonEmptyList)
-import Data.Map (Map, lookup)
+import Data.Map (Map)
+import Data.Map (lookup, fromFoldable) as Map
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.Number (fromString) as Number
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
+import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, discard, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (>>>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, many1, sepBy, try)
@@ -39,7 +40,8 @@ instance Show Json where
 
 -- Manipulate
 at :: String -> Json -> Json
-at key (JObject object) = fromMaybe JNull $ lookup key object
+at key (JObject object) =
+  fromMaybe JNull $ Map.lookup key object
 
 at _ _ = JNull
 
@@ -52,6 +54,7 @@ parser =
       <|> try numberParser
       <|> try booleanParser
       <|> try (arrayParser p)
+      <|> try (objectParser p)
   )
 
 nullParser :: Parser String Json
@@ -88,8 +91,20 @@ booleanParser =
 
 arrayParser :: Parser String Json -> Parser String Json
 arrayParser p =
-  JArray <<< fromFoldable <$> (inSquares $ sepBy p (string ","))
-  # spaced
+  JArray <<< Array.fromFoldable <$> (inSquares $ sepBy p (string ","))
+    # spaced
+
+objectParser :: Parser String Json -> Parser String Json
+objectParser p = do
+  keyValues <- inCurlies $ many keyValueParser
+  pure $ JObject (Map.fromFoldable keyValues)
+  where
+    keyValueParser :: Parser String (Tuple String Json)
+    keyValueParser = do
+      key <- charsToString <$> between (char '"') (char '"') (many (satisfy ((/=) '"')))
+      _ <- spaced $ (char ':')
+      value <- p
+      pure $ Tuple key value
   
 
 -- These should be extracted to a helper in common with the jq Parser
@@ -120,3 +135,12 @@ openSquare = spaced $ char '['
 
 closeSquare :: Parser String Char
 closeSquare = spaced $ char ']'
+
+inCurlies :: forall a. Parser String a -> Parser String a
+inCurlies = between openCurly closeCurly
+
+openCurly :: Parser String Char
+openCurly = spaced $ char '{'
+
+closeCurly :: Parser String Char
+closeCurly = spaced $ char '}'

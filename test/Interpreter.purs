@@ -7,26 +7,36 @@ import Expression (Expression)
 import Helpers.Expression (accessByKeyNames, identity)
 import Interpreter (run) as Interpreter
 import Json (Json)
+import Json as Json
 import Prelude (Unit, discard)
-import Test.Helpers.Json
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Assertions (fail, shouldEqual)
+import Text.Parsing.Parser (runParser)
 
 main :: Spec Unit
 main = do
   describe "Interpreting" do
     describe "Identity" do
       it "identity" do
-        test identity (num 4.2) (num 4.2)
+        test2 identity
+          "4.2"
+          "4.2"
     describe "Accessor" do
       it "gets the value in the object at the given keys" do
-        test (accessByKeyNames [ "foo", "bar" ]) input (str "ciao")
-  where
-  input =
-    obj
-      [ "foo"
-          : obj [ "bar" : str "ciao" ]
-      ]
+        test2 (accessByKeyNames [ "foo", "bar" ])
+          """
+            {
+              "foo": { "bar": "ciao" }
+            }
+          """
+          "\"ciao\""
 
 test :: forall a. MonadThrow Error a => Expression -> Json -> Json -> a Unit
 test expression input expectedOutput = Interpreter.run expression input `shouldEqual` (Right expectedOutput)
+
+test2 :: forall a. MonadThrow Error a => Expression -> String -> String -> a Unit
+test2 expression input expectedOutput = case [ runParser input Json.parser, runParser expectedOutput Json.parser ] of
+  [ Right i, Right o ] -> test expression i o
+  [ Left _, _ ] -> fail "failed to parse JSON in the input"
+  [ _, Left _ ] -> fail "failed to parse JSON in the output"
+  _ -> fail "failed to parse JSON"

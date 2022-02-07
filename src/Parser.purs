@@ -1,6 +1,5 @@
 module Parser (parse) where
 
-import Json
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
@@ -10,7 +9,7 @@ import Data.CodePoint.Unicode (isDecDigit, isSpace)
 import Data.Either (Either)
 import Data.Foldable as Foldable
 import Data.Functor (map)
-import Data.Int (fromString, toNumber)
+import Data.Int (fromString)
 import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
@@ -35,9 +34,9 @@ parser =
 expressionParser :: Parser String Expression -> Parser String Expression
 expressionParser p =
   try (arrayConstructorParser p)
-    <|> try literalParser
     <|> try accessorParser
     <|> try identityParser
+    <|> try literalParser
 
 literalParser :: Parser String Expression
 literalParser = do
