@@ -75,7 +75,7 @@ main = do
           """
           [ "\"ciao\"", "\"miao\"" ]
       it "nested array iteration" do
-        test (accessAllItems || accessByKeyNames [ "nest" ] || accessAllItems)
+        test (accessor [allItems, atKey "nest" , allItems ])
           """
             [
               { "nest" : [33, "wat"] },
