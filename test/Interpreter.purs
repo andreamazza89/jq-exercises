@@ -58,7 +58,7 @@ main = do
 test :: forall a. MonadThrow Error a => Expression -> String -> String -> a Unit
 test expression input expectedOutput =
   case [ parseJson input, parseJson expectedOutput ] of
-    [ Right i, Right o ] -> Interpreter.run expression i `shouldEqual` (Right o)
+    [ Right i, Right o ] -> Interpreter.run expression [i] `shouldEqual` (Right [o])
     _ -> fail "failed to parse JSON"
   where
     parseJson s = runParser s Json.parser
