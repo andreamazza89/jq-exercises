@@ -37,6 +37,18 @@ main = do
             ["ciao", "miao"]
           """
           [ "\"miao\"" ]
+      it "null when no value found (array)" do
+        test (accessByIndex [ 1 ])
+          """
+            ["ciao"]
+          """
+          [ "null" ]
+      it "null when no value found (object)" do
+        test (accessByKeyNames [ "foo" ])
+          """
+            {}
+          """
+          [ "null" ]
       it "gets the value at the given mixed path" do
         test (accessor [ atKey "ciao", atIndex 1, atKey "miao" ])
           """

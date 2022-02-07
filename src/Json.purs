@@ -17,7 +17,7 @@ import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.Map (Map)
 import Data.Map (fromFoldable, lookup, values) as Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
 import Data.Tuple (Tuple(..))
@@ -45,14 +45,21 @@ instance Show Json where
   show (JObject o) = show o
 
 -- Read
--- TODO: these two atXXX below should return JNull instead of Nothing when the map/index lookup does not find anything
 atKey :: String -> Json -> Maybe Json
-atKey key (JObject object) = Map.lookup key object
+atKey key (JObject object) =
+  Map.lookup key object
+    # defaultToNull >>> Just
 atKey _ _ = Nothing
 
 atIndex :: Int -> Json -> Maybe Json
-atIndex index (JArray array) = Array.index array index
+atIndex index (JArray array) =
+  Array.index array index
+    # defaultToNull >>> Just
 atIndex _ _ = Nothing
+
+defaultToNull :: Maybe Json -> Json
+defaultToNull =
+  fromMaybe JNull
 
 values :: Json -> Maybe (Array Json)
 values (JArray array) = Just array
