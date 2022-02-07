@@ -47,6 +47,13 @@ main = do
             }
           """
           "true"
+    describe "Pipe" do
+      it "simple pipe" do
+        test (accessByIndex [0] || identity)
+          """
+            ["ciao", "miao"]
+          """
+          "\"ciao\""
 
 test :: forall a. MonadThrow Error a => Expression -> String -> String -> a Unit
 test expression input expectedOutput =
