@@ -20,6 +20,8 @@ run (Accessor _ path) input =
 
 run (Pipe l r) input = run l input >>= run r
 
+run (Literal json) _ = Right [ json ]
+
 run _ _ = Left "TODO - interpreter support"
 
 accumulator :: Maybe (Array Json) -> Target -> Maybe (Array Json)

@@ -1,6 +1,7 @@
 module Test.Interpreter where
 
 import Helpers.Expression
+
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -10,6 +11,7 @@ import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard)
+import Test.Helpers.Json (num)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Parsing.Parser (runParser)
@@ -19,6 +21,11 @@ main = do
   describe "Interpreting" do
     describe "Identity" do
       it "identity" do
+        test (literal (num 42.42))
+          "{}"
+          [ "42.42" ]
+    describe "Literal" do
+      it "literal" do
         test identity
           "4.2"
           [ "4.2" ]
