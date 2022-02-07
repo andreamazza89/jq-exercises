@@ -4,7 +4,7 @@ import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Effect.Exception (Error)
 import Expression (Expression)
-import Helpers.Expression (accessByKeyNames, identity)
+import Helpers.Expression
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard)
@@ -29,6 +29,24 @@ main = do
             }
           """
           "\"ciao\""
+      it "gets the value in the array at the given index" do
+        test (accessByIndex [ 1 ])
+          """
+            ["ciao", "miao"]
+          """
+          "\"miao\""
+      it "gets the value at the given mixed path" do
+        test (accessor [ atKey "ciao", atIndex 1, atKey "miao" ])
+          """
+            {
+              "ciao": [
+                42,
+                { "miao": true }
+              ],
+              "somethingElse": 33
+            }
+          """
+          "true"
 
 test :: forall a. MonadThrow Error a => Expression -> String -> String -> a Unit
 test expression input expectedOutput =

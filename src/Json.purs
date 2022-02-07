@@ -1,23 +1,24 @@
-module Json (Json(..), at, parser) where
+module Json (Json(..), atKey, atIndex, parser) where
+
+import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (fromFoldable) as Array
+import Data.Array (fromFoldable, index) as Array
 import Data.Array (many)
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.Map (Map)
 import Data.Map (lookup, fromFoldable) as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (>>>))
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Combinators (between, many1, sepBy, try)
+import Text.Parsing.Parser.Combinators (many1, sepBy, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
-import Utils.Parsing
 
 data Json
   = JNull
@@ -37,13 +38,14 @@ instance Show Json where
   show (JArray a) = show a
   show (JObject o) = show o
 
--- Manipulate
-at :: String -> Json -> Json
-at key (JObject object) =
-  fromMaybe JNull $ Map.lookup key object
+-- Read
+atKey :: String -> Json -> Maybe Json
+atKey key (JObject object) = Map.lookup key object
+atKey _ _ = Nothing
 
-at _ _ = JNull
-
+atIndex :: Int -> Json -> Maybe Json
+atIndex index (JArray array) = Array.index array index
+atIndex _ _ = Nothing
 -- Parse
 parser :: Parser String Json
 parser =
@@ -95,7 +97,7 @@ arrayParser p =
 
 objectParser :: Parser String Json -> Parser String Json
 objectParser p = do
-  keyValues <- inCurlies $ many keyValueParser
+  keyValues <- inCurlies $ sepBy keyValueParser (spaced $ char ',')
   pure $ JObject (Map.fromFoldable keyValues)
   where
     keyValueParser :: Parser String (Tuple String Json)
