@@ -2,9 +2,11 @@ module Json
   ( Json(..)
   , atIndex
   , atKey
+  , buildArray
   , parser
   , values
-  ) where
+  )
+  where
 
 import Utils.Parsing
 
@@ -23,7 +25,7 @@ import Data.String.CodeUnits (singleton)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (>>>))
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Combinators (many1, sepBy, try)
+import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
 
 data Json
@@ -43,6 +45,10 @@ instance Show Json where
   show (JBoolean b) = show b
   show (JArray a) = show a
   show (JObject o) = show o
+
+-- Build
+buildArray :: Array Json -> Json
+buildArray = JArray
 
 -- Read
 atKey :: String -> Json -> Maybe Json

@@ -10,6 +10,7 @@ import Effect.Exception (Error)
 import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
+import Pipes (each)
 import Prelude (Unit, discard)
 import Test.Helpers.Json (num)
 import Test.Spec (Spec, describe, it)
@@ -87,11 +88,29 @@ main = do
           """
           [ "33", "\"wat\"", "true", "\"gotta love mixing types\"" ]
 
-    -- describe "Array constructor" do
-    --   it "builds an empty array" do
-    --     test (accessByIndex [ 0 ] || identity)
-    --       jsonInputIgnored
-    --       [ "[]" ]
+    describe "Array constructor" do
+      it "builds an empty array" do
+        test (constructArray [])
+          jsonInputIgnored
+          [ "[]" ]
+      it "builds an an array from the input" do
+        test (constructArray [accessByKeyNames ["zero"], accessByKeyNames ["one"]])
+          """
+            {
+              "zero": 0,
+              "one": 1
+            }
+          """
+          [ "[0, 1]" ]
+      it "flattens nested arrays" do
+        test (constructArray [accessor [atKey "zero", allItems], accessByKeyNames ["three"]])
+          """
+            {
+              "zero": [0,1,2],
+              "three": 3
+            }
+          """
+          [ "[0,1,2,3]" ]
 
     describe "Pipe" do
       it "simple pipe" do
