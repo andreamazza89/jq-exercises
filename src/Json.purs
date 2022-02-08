@@ -112,12 +112,12 @@ booleanParser =
 
 arrayParser :: Parser String Json -> Parser String Json
 arrayParser p =
-  JArray <<< Array.fromFoldable <$> (inSquares $ sepBy p (string ","))
+  JArray <<< Array.fromFoldable <$> (inSquares $ sepByCommas p)
     # spaced
 
 objectParser :: Parser String Json -> Parser String Json
 objectParser p = do
-  keyValues <- inCurlies $ sepBy keyValueParser (spaced $ char ',')
+  keyValues <- inCurlies $ sepByCommas keyValueParser
   pure $ JObject (Map.fromFoldable keyValues)
   where
     keyValueParser :: Parser String (Tuple String Json)

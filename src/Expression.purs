@@ -10,7 +10,7 @@ data Expression
   = Identity
   | Accessor Over Path
   | Literal Json
-  | ArrayConstructor Expression 
+  | ArrayConstructor (Array Expression)
   | Pipe Expression Expression
 
 type Path
@@ -34,7 +34,7 @@ derive instance equalTarget :: Eq Target
 instance Show Expression where
   show Identity = "Identity"
   show (Pipe l r) = show l <> " || " <> show r
-  show (ArrayConstructor expr) = "[ " <> show expr <> " ]"
+  show (ArrayConstructor items) = show items
   show (Literal json) = show json
   show (Accessor Input path) = "." <> joinPath path
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path

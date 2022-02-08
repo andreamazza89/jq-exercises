@@ -1,11 +1,13 @@
 module Utils.Parsing where
 
+import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
+import Data.Functor (map)
 import Data.Maybe (Maybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
-import Prelude (bind, discard, pure, ($), (>>>))
+import Prelude (bind, discard, pure, ($), (#), (>>>))
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators (between)
+import Text.Parsing.Parser.Combinators (between, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
 
 dash :: Parser String Char
@@ -24,6 +26,11 @@ required :: forall a. Parser String (Maybe a) -> Parser String a
 required maybeParser = do
   a <- maybeParser
   maybe (fail "value must exist") pure a
+
+sepByCommas :: forall a. Parser String a -> Parser String (Array a)
+sepByCommas p =
+  sepBy p (spaced $ char ',')
+    # map Array.fromFoldable
 
 spaced :: forall a. Parser String a -> Parser String a
 spaced p = do

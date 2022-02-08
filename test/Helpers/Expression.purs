@@ -29,7 +29,7 @@ accessByKeyNames = map Key >>> accessor
 accessByIndex :: Array Int -> Expression
 accessByIndex = map AtIndex >>> accessor
 
-constructArray :: Expression -> Expression
+constructArray :: Array Expression -> Expression
 constructArray = ArrayConstructor
 
 literal :: Json -> Expression

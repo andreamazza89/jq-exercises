@@ -19,16 +19,19 @@ import Text.Parsing.Parser (runParser)
 main :: Spec Unit
 main = do
   describe "Interpreting" do
+
     describe "Identity" do
       it "identity" do
         test (literal (num 42.42))
-          "{}"
+          jsonInputIgnored
           [ "42.42" ]
+
     describe "Literal" do
       it "literal" do
         test identity
           "4.2"
           [ "4.2" ]
+
     describe "Accessor" do
       it "gets the value in the object at the given keys" do
         test (accessByKeyNames [ "foo", "bar" ])
@@ -83,6 +86,13 @@ main = do
             ]
           """
           [ "33", "\"wat\"", "true", "\"gotta love mixing types\"" ]
+
+    -- describe "Array constructor" do
+    --   it "builds an empty array" do
+    --     test (accessByIndex [ 0 ] || identity)
+    --       jsonInputIgnored
+    --       [ "[]" ]
+
     describe "Pipe" do
       it "simple pipe" do
         test (accessByIndex [ 0 ] || identity)
@@ -97,3 +107,6 @@ test expression input expectedOutput = case Tuple (parseJson input) (traverse pa
   _ -> fail "failed to parse JSON"
   where
   parseJson s = runParser s Json.parser
+
+jsonInputIgnored :: String
+jsonInputIgnored = "{}"

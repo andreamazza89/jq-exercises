@@ -1,6 +1,8 @@
 module Parser (parse) where
 
 
+import Utils.Parsing
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (all)
@@ -16,11 +18,10 @@ import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Json as Json
-import Prelude (bind, not, pure, (#), ($), ($>), (&&), (/=), (<<<), (>>>))
+import Prelude (bind, not, pure, (#), ($), ($>), (&&), (*>), (/=), (<<<), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
 import Text.Parsing.Parser.Combinators (chainl, many1, optional, try)
 import Text.Parsing.Parser.String (char, satisfy)
-import Utils.Parsing
 
 parse :: String -> Either ParseError Expression
 parse input = runParser input parser
@@ -57,11 +58,11 @@ accessorParser = do
       # spaced
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
-arrayConstructorParser p = do
-  _ <- openSquare
-  expr <- p
-  _ <- closeSquare
-  pure (ArrayConstructor expr)
+arrayConstructorParser p =
+  try emptyArray <|> try arrayWithItems
+    where
+    emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
+    arrayWithItems = (inSquares $ sepByCommas p) # map ArrayConstructor
 
 targetParser :: Parser String Target
 targetParser = do
