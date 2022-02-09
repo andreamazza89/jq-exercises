@@ -10,6 +10,9 @@ import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
 
+comma :: Parser String Char
+comma = char ','
+
 dash :: Parser String Char
 dash = (char '-')
 
@@ -29,7 +32,7 @@ required maybeParser = do
 
 sepByCommas :: forall a. Parser String a -> Parser String (Array a)
 sepByCommas p =
-  sepBy p (spaced $ char ',')
+  sepBy p (spaced $ comma)
     # map Array.fromFoldable
 
 spaced :: forall a. Parser String a -> Parser String a

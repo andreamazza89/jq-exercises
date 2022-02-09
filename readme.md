@@ -82,3 +82,16 @@ and helped me climb out of that hole!
 
 The blog post above mentions [this page](https://www.csd.uwo.ca/~mmorenom/CS447/Lectures/Syntax.html/node8.html), which
 is a mathematical explanation of how the problem is solved. I'd love to be able to understand the math version.
+
+### Associative Property
+I ran into this when looking up the associativity of the `,` and `|` operators. Intuitively, the `|` operator seems to be
+left associative (see my thinking in the questions section), however the language specification says it's right associative
+(see [here](https://github.com/stedolan/jq/wiki/jq-Language-Description#operators-priority)).
+
+It turns out that the pipe operator will give the same result, regardless of how it's associated. This property is called
+associative property and described in [this wiki](https://en.m.wikipedia.org/wiki/Associative_property) like so:
+
+> Within an expression containing two or more occurrences in a row of the same associative operator,
+> the order in which the operations are performed does not matter as long as the sequence of the operands is not changed.
+
+Addition is an example of this property, where it doesn't matter how you parenthesise, it will always yield the same result.
