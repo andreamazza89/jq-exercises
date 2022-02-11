@@ -5,10 +5,10 @@ import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Functor (map)
 import Data.Maybe (Maybe, fromMaybe, maybe)
+import Data.Newtype (overF)
 import Data.String.CodePoints (codePointFromChar)
-import Data.Tuple (Tuple(..), fst, snd)
-import Effect.Exception (throwException)
-import Prelude (bind, discard, map, pure, (#), ($), (>>>), (<))
+import Data.Tuple (Tuple, fst, snd)
+import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (>>>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, option, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
@@ -71,10 +71,24 @@ data Associativity
   = LAssociative
   | RAssociative
 
+derive instance equalAssociativity :: Eq Associativity
+
+type Infix a
+  = { exp :: a
+    , precedence :: Precedence
+    , associativity :: Associativity
+    }
+
+precccc :: forall a.  Infix a -> Int
+precccc inffiix =
+  case inffiix.associativity of
+    LAssociative -> inffiix.precedence
+    RAssociative -> inffiix.precedence - 1
+
 expressionParser ::
   forall a.
   { prefix :: Array (Parser String a)
-  , infix :: Array ((Precedence -> Parser String a) -> a -> Parser String (Tuple Precedence a))
+  , infix :: Array ((Precedence -> Parser String a) -> a -> Parser String (Infix a))
   } ->
   Parser String a
 expressionParser input = parser 0
@@ -88,9 +102,9 @@ expressionParser input = parser 0
     maybe
       (pure left)
       ( \fx ->
-          if currentPrecedence < (fst fx) then do
+          if currentPrecedence < fx.precedence then do
             newL <- (choice (map (\i -> try $ i parser left) input.infix))
-            loop currentPrecedence (snd newL)
+            loop currentPrecedence newL.exp
           else
             pure left
       )

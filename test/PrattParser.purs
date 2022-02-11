@@ -26,39 +26,58 @@ main = do
           Right (2)
     it "addition and multiplication" do
       runParser "2 * 3 + 1"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser, divideParser ] })
+        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser ] })
         `shouldEqual`
           Right (7)
 
     it "left association" do
       runParser "8 / 2 / 2"
-        (expressionParser { prefix: [ intParser ], infix: [ divideParser ] })
+        (expressionParser { prefix: [ intParser ], infix: [ divideParser LAssociative ] })
         `shouldEqual`
           Right (2)
 
-addParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
+    it "right association" do
+      runParser "8 / 2 / 2"
+        (expressionParser { prefix: [ intParser ], infix: [ divideParser RAssociative ] })
+        `shouldEqual`
+          Right (8)
+
+
+addParser :: (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
 addParser p exp = do
   _ <- spaced $ char '+'
   rExp <- p 1
-  pure (Tuple 1 $ exp + rExp)
+  pure { exp : exp + rExp
+    , precedence : 1
+    , associativity : LAssociative
+    }
 
-subtractParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
+subtractParser :: (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
 subtractParser p exp = do
   _ <- spaced $ char '-'
   rExp <- p 1
-  pure (Tuple 1 $ exp - rExp)
+  pure { exp : exp - rExp
+    , precedence : 1
+    , associativity : LAssociative
+    }
 
-multiplyParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
+multiplyParser :: (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
 multiplyParser p exp = do
   _ <- spaced $ char '*'
   rExp <- p 2
-  pure (Tuple 2 $ exp * rExp)
+  pure { exp : exp * rExp
+    , precedence : 2
+    , associativity : LAssociative
+    }
 
-divideParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
-divideParser p exp = do
+divideParser :: Associativity -> (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
+divideParser associativity p exp = do
   _ <- spaced $ char '/'
-  rExp <- p 3
-  pure (Tuple 3 $ exp / rExp)
+  rExp <- if associativity == LAssociative then p 3 else p 2
+  pure { exp : exp / rExp
+    , precedence : 3
+    , associativity : associativity
+    }
 
 
 charsToString :: NonEmptyList Char -> String
