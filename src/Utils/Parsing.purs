@@ -1,13 +1,16 @@
 module Utils.Parsing where
 
+import Control.Lazy (fix)
 import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Functor (map)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
-import Prelude (bind, discard, pure, ($), (#), (>>>))
+import Data.Tuple (Tuple(..), fst, snd)
+import Effect.Exception (throwException)
+import Prelude (bind, discard, map, pure, (#), ($), (>>>), (<))
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators (between, sepBy)
+import Text.Parsing.Parser.Combinators (between, choice, lookAhead, option, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
 
 comma :: Parser String Char
@@ -59,3 +62,32 @@ openSquare = spaced $ char '['
 
 closeSquare :: Parser String Char
 closeSquare = spaced $ char ']'
+
+-- Parsing expressions with a Pratt Parser
+type Precedence
+  = Int
+
+expressionParser ::
+  forall a.
+  { prefix :: Array (Parser String a)
+  , infix :: Array (Parser String a -> a -> Parser String (Tuple Precedence a))
+  } ->
+  Parser String a
+expressionParser input = stuff 0
+  where
+  stuff prec = do
+    left <- choice input.prefix
+    choice
+      [ go prec left
+      , pure left
+      ]
+
+  go currentPrecedence left = do
+    infx <- optionMaybe $ lookAhead $ choice (map (\i -> try $ i (stuff currentPrecedence) left) input.infix)
+    maybe (pure left) (\fx ->
+      if currentPrecedence < (fst fx) then do
+        newL <- (choice (map (\i -> try $ i (stuff (fst fx)) left) input.infix))
+        go currentPrecedence (snd newL)
+      else
+        pure left
+    ) infx
