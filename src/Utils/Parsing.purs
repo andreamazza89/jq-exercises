@@ -70,24 +70,24 @@ type Precedence
 expressionParser ::
   forall a.
   { prefix :: Array (Parser String a)
-  , infix :: Array (Parser String a -> a -> Parser String (Tuple Precedence a))
+  , infix :: Array ((Precedence -> Parser String a) -> a -> Parser String (Tuple Precedence a))
   } ->
   Parser String a
-expressionParser input = stuff 0
+expressionParser input = parser 0
   where
-  stuff prec = do
+  parser prec = do
     left <- choice input.prefix
-    choice
-      [ go prec left
-      , pure left
-      ]
+    loop prec left
 
-  go currentPrecedence left = do
-    infx <- optionMaybe $ lookAhead $ choice (map (\i -> try $ i (stuff currentPrecedence) left) input.infix)
-    maybe (pure left) (\fx ->
-      if currentPrecedence < (fst fx) then do
-        newL <- (choice (map (\i -> try $ i (stuff (fst fx)) left) input.infix))
-        go currentPrecedence (snd newL)
-      else
-        pure left
-    ) infx
+  loop currentPrecedence left = do
+    infx <- optionMaybe $ lookAhead $ choice (map (\i -> try $ i parser left) input.infix)
+    maybe
+      (pure left)
+      ( \fx ->
+          if currentPrecedence < (fst fx) then do
+            newL <- (choice (map (\i -> try $ i parser left) input.infix))
+            loop currentPrecedence (snd newL)
+          else
+            pure left
+      )
+      infx

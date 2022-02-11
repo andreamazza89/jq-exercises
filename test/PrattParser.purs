@@ -25,29 +25,35 @@ main = do
         `shouldEqual`
           Right (2)
     it "addition and multiplication" do
-      runParser "2 * 3 + 1"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser ] })
+      runParser "2 * 3 + 1 + 2 / 2 * 0"
+        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser, divideParser ] })
         `shouldEqual`
           Right (7)
 
-addParser :: Parser String Int -> Int -> Parser String (Tuple Int Int)
+addParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
 addParser p exp = do
   _ <- spaced $ char '+'
-  rExp <- p
+  rExp <- p 1
   pure (Tuple 1 $ exp + rExp)
 
-subtractParser :: Parser String Int -> Int -> Parser String (Tuple Int Int)
+subtractParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
 subtractParser p exp = do
   _ <- spaced $ char '-'
-  rExp <- p
+  rExp <- p 1
   pure (Tuple 1 $ exp - rExp)
 
-multiplyParser :: Parser String Int -> Int -> Parser String (Tuple Int Int)
-
+multiplyParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
 multiplyParser p exp = do
   _ <- spaced $ char '*'
-  rExp <- p
+  rExp <- p 2
   pure (Tuple 2 $ exp * rExp)
+
+divideParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
+divideParser p exp = do
+  _ <- spaced $ char '/'
+  rExp <- p 3
+  pure (Tuple 3 $ exp / rExp)
+
 
 charsToString :: NonEmptyList Char -> String
 charsToString = Foldable.foldMap singleton
