@@ -25,10 +25,16 @@ main = do
         `shouldEqual`
           Right (2)
     it "addition and multiplication" do
-      runParser "2 * 3 + 1 + 2 / 2 * 0"
+      runParser "2 * 3 + 1"
         (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser, divideParser ] })
         `shouldEqual`
           Right (7)
+
+    it "left association" do
+      runParser "8 / 2 / 2"
+        (expressionParser { prefix: [ intParser ], infix: [ divideParser ] })
+        `shouldEqual`
+          Right (2)
 
 addParser :: (Int -> Parser String Int) -> Int -> Parser String (Tuple Int Int)
 addParser p exp = do

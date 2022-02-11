@@ -67,6 +67,10 @@ closeSquare = spaced $ char ']'
 type Precedence
   = Int
 
+data Associativity
+  = LAssociative
+  | RAssociative
+
 expressionParser ::
   forall a.
   { prefix :: Array (Parser String a)
