@@ -1,16 +1,13 @@
 module Utils.Parsing where
 
-import Control.Lazy (fix)
 import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
-import Data.Functor (map)
-import Data.Maybe (Maybe, fromMaybe, maybe)
+import Data.Maybe (Maybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
-import Data.Tuple (Tuple(..), fst, snd)
 import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (==), (>>>))
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators (between, choice, lookAhead, option, optionMaybe, sepBy, try)
-import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
+import Text.Parsing.Parser.Combinators (between, choice, lookAhead, optionMaybe, sepBy)
+import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
 
 comma :: Parser String Char
 comma = char ','
@@ -62,7 +59,8 @@ openSquare = spaced $ char '['
 closeSquare :: Parser String Char
 closeSquare = spaced $ char ']'
 
--- Parsing expressions with a Pratt Parser
+-- Parsing expressions with a Pratt Parser - this blog post really helped me figure it out:
+-- http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 type Precedence
   = Int
 
@@ -72,52 +70,20 @@ data Associativity
 
 derive instance equalAssociativity :: Eq Associativity
 
-type Infix a
-  = { exp :: a
-    , precedence :: Precedence
-    , associativity :: Associativity
-    }
-
-precccc :: forall a. Infix a -> Int
-precccc inffiix = case inffiix.associativity of
-  LAssociative -> inffiix.precedence
-  RAssociative -> inffiix.precedence - 1
+type InfixParser a
+  = Parser String 
+      { prec :: Precedence
+      , buildExp :: a -> a -> a
+      , associativity :: Associativity
+      }
 
 expressionParser ::
-  forall a.
-  { prefix :: Array (Parser String a)
-  , infix :: Array ((Precedence -> Parser String a) -> a -> Parser String (Infix a))
-  } ->
-  Parser String a
-expressionParser input = parser 0
-  where
-  parser prec = do
-    left <- choice input.prefix
-    loop prec left
-
-  loop currentPrecedence left = do
-    infx <- optionMaybe $ lookAhead $ choice (map (\i -> try $ i parser left) input.infix)
-    maybe
-      (pure left)
-      ( \fx ->
-          if currentPrecedence < fx.precedence then do
-            newL <- (choice (map (\i -> try $ i parser left) input.infix))
-            loop currentPrecedence newL.exp
-          else
-            pure left
-      )
-      infx
-
-type InfixParser a
-  = Parser String ({ prec :: Precedence, buildExp :: a -> a -> a, associativity :: Associativity })
-
-expressionParser2 ::
   forall a.
   { prefix :: Array (Parser String a)
   , infix :: Array (InfixParser a)
   } ->
   Parser String a
-expressionParser2 input = parser 0
+expressionParser input = parser 0
   where
   parser pr = do
     left <- choice input.prefix
@@ -136,3 +102,21 @@ expressionParser2 input = parser 0
             pure left
       )
       infx
+
+infixLeft :: forall exp . String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
+infixLeft  operator precedence buildExpression = do
+  _ <- spaced $ string operator
+  pure
+    { prec: precedence
+    , buildExp: buildExpression
+    , associativity: LAssociative
+    }
+
+infixRight :: forall exp . String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
+infixRight  operator precedence buildExpression = do
+  _ <- spaced $ string operator
+  pure
+    { prec: precedence
+    , buildExp: buildExpression
+    , associativity: RAssociative
+    }
