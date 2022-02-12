@@ -4,7 +4,7 @@ import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
-import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (>>>))
+import Prelude (bind, discard, map, pure, (#), ($), (-), (<), (>>>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, optionMaybe, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
@@ -61,15 +61,6 @@ closeSquare = spaced $ char ']'
 
 -- Parsing expressions with a Pratt Parser - this blog post really helped me figure it out:
 -- http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
-type Precedence
-  = Int
-
-data Associativity
-  = LAssociative
-  | RAssociative
-
-derive instance equalAssociativity :: Eq Associativity
-
 type ParserConfig exp =
   { prefix :: Array (Parser String exp)
   , infix :: Array (InfixParser exp)
@@ -84,12 +75,19 @@ type InfixConfig exp =
   , associativity :: Associativity
   }
 
+type Precedence
+  = Int
+
+data Associativity
+  = LAssociative
+  | RAssociative
+
 expressionParser :: forall exp.  ParserConfig exp -> Parser String exp
 expressionParser =
   expressionParser_ 0
 expressionParser_ :: forall exp.  Precedence -> ParserConfig exp -> Parser String exp
 expressionParser_ precedence input = do
-    leftExp <- choice $ map spaced input.prefix
+    leftExp <- spaced $ choice input.prefix
     loop precedence leftExp input
 
 loop :: forall exp. Precedence -> exp -> ParserConfig exp -> Parser String exp
