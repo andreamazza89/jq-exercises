@@ -5,10 +5,9 @@ import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Functor (map)
 import Data.Maybe (Maybe, fromMaybe, maybe)
-import Data.Newtype (overF)
 import Data.String.CodePoints (codePointFromChar)
-import Data.Tuple (Tuple, fst, snd)
-import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (>>>))
+import Data.Tuple (Tuple(..), fst, snd)
+import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (==), (>>>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, option, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
@@ -79,11 +78,10 @@ type Infix a
     , associativity :: Associativity
     }
 
-precccc :: forall a.  Infix a -> Int
-precccc inffiix =
-  case inffiix.associativity of
-    LAssociative -> inffiix.precedence
-    RAssociative -> inffiix.precedence - 1
+precccc :: forall a. Infix a -> Int
+precccc inffiix = case inffiix.associativity of
+  LAssociative -> inffiix.precedence
+  RAssociative -> inffiix.precedence - 1
 
 expressionParser ::
   forall a.
@@ -105,6 +103,35 @@ expressionParser input = parser 0
           if currentPrecedence < fx.precedence then do
             newL <- (choice (map (\i -> try $ i parser left) input.infix))
             loop currentPrecedence newL.exp
+          else
+            pure left
+      )
+      infx
+
+type InfixParser a
+  = Parser String ({ prec :: Precedence, buildExp :: a -> a -> a, associativity :: Associativity })
+
+expressionParser2 ::
+  forall a.
+  { prefix :: Array (Parser String a)
+  , infix :: Array (InfixParser a)
+  } ->
+  Parser String a
+expressionParser2 input = parser 0
+  where
+  parser pr = do
+    left <- choice input.prefix
+    loop pr left
+
+  loop currentPrecedence left = do
+    infx <- optionMaybe $ lookAhead $ choice input.infix
+    maybe
+      (pure left)
+      ( \fx ->
+          if currentPrecedence < fx.prec then do
+            mx <- choice input.infix
+            rExp <- parser (if mx.associativity == LAssociative then mx.prec else mx.prec - 1)
+            loop currentPrecedence (mx.buildExp left rExp)
           else
             pure left
       )

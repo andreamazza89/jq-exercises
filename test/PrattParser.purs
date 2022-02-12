@@ -21,24 +21,24 @@ main = do
   describe "Pratt Parsing" do
     it "addition and subtraction" do
       runParser "4 + 1 - 3"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, subtractParser ] })
+        (expressionParser2 { prefix: [ intParser ], infix: [ addParser2, subtractParser2 ] })
         `shouldEqual`
           Right (2)
     it "addition and multiplication" do
       runParser "2 * 3 + 1"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser ] })
+        (expressionParser2 { prefix: [ intParser ], infix: [ addParser2, multiplyParser2 ] })
         `shouldEqual`
           Right (7)
 
     it "left association" do
       runParser "8 / 2 / 2"
-        (expressionParser { prefix: [ intParser ], infix: [ divideParser LAssociative ] })
+        (expressionParser2 { prefix: [ intParser ], infix: [ divideParser2 LAssociative ] })
         `shouldEqual`
           Right (2)
 
     it "right association" do
       runParser "8 / 2 / 2"
-        (expressionParser { prefix: [ intParser ], infix: [ divideParser RAssociative ] })
+        (expressionParser2 { prefix: [ intParser ], infix: [ divideParser2 RAssociative ] })
         `shouldEqual`
           Right (8)
 
@@ -52,6 +52,13 @@ addParser p exp = do
     , associativity : LAssociative
     }
 
+addParser2 :: Parser String ({ prec :: Precedence, buildExp :: Int -> Int -> Int, associativity :: Associativity })
+addParser2 = do
+  _ <- spaced $ char '+'
+  pure {prec: 1, buildExp: (+), associativity: LAssociative}
+
+  
+
 subtractParser :: (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
 subtractParser p exp = do
   _ <- spaced $ char '-'
@@ -60,6 +67,11 @@ subtractParser p exp = do
     , precedence : 1
     , associativity : LAssociative
     }
+
+subtractParser2 :: Parser String ({ prec :: Precedence, buildExp :: Int -> Int -> Int, associativity :: Associativity })
+subtractParser2 = do
+  _ <- spaced $ char '-'
+  pure {prec: 1, buildExp: (-), associativity: LAssociative}
 
 multiplyParser :: (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
 multiplyParser p exp = do
@@ -70,14 +82,17 @@ multiplyParser p exp = do
     , associativity : LAssociative
     }
 
-divideParser :: Associativity -> (Int -> Parser String Int) -> Int -> Parser String (Infix Int)
-divideParser associativity p exp = do
+multiplyParser2 ::  Parser String ({ prec :: Precedence, buildExp :: Int -> Int -> Int, associativity :: Associativity })
+multiplyParser2 = do
+  _ <- spaced $ char '*'
+  pure {prec: 2, buildExp: (*), associativity: LAssociative}
+  
+
+
+divideParser2 :: Associativity -> Parser String ({ prec :: Precedence, buildExp :: Int -> Int -> Int, associativity :: Associativity })
+divideParser2 associativity = do
   _ <- spaced $ char '/'
-  rExp <- if associativity == LAssociative then p 3 else p 2
-  pure { exp : exp / rExp
-    , precedence : 3
-    , associativity : associativity
-    }
+  pure {prec: 3, buildExp: (/), associativity: associativity}
 
 
 charsToString :: NonEmptyList Char -> String
@@ -91,3 +106,4 @@ intParser =
   many1 digit
     # map charsToInt
     # required
+    # spaced
