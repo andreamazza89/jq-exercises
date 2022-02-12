@@ -2,9 +2,9 @@ module Utils.Parsing where
 
 import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
-import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (==), (>>>))
+import Prelude (class Eq, bind, discard, map, pure, (#), ($), (-), (<), (>>>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, optionMaybe, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
@@ -70,51 +70,60 @@ data Associativity
 
 derive instance equalAssociativity :: Eq Associativity
 
-type InfixParser a
-  = Parser String 
-      { prec :: Precedence
-      , buildExp :: a -> a -> a
-      , associativity :: Associativity
-      }
+type ParserConfig exp =
+  { prefix :: Array (Parser String exp)
+  , infix :: Array (InfixParser exp)
+  }
 
-expressionParser ::
-  forall a.
-  { prefix :: Array (Parser String a)
-  , infix :: Array (InfixParser a)
-  } ->
-  Parser String a
-expressionParser input = parser 0
+type InfixParser exp
+  = Parser String (InfixConfig exp)
+
+type InfixConfig exp =
+  { prec :: Precedence
+  , buildExp :: exp -> exp -> exp
+  , associativity :: Associativity
+  }
+
+expressionParser :: forall exp.  ParserConfig exp -> Parser String exp
+expressionParser =
+  expressionParser_ 0
+expressionParser_ :: forall exp.  Precedence -> ParserConfig exp -> Parser String exp
+expressionParser_ precedence input = do
+    leftExp <- choice $ map spaced input.prefix
+    loop precedence leftExp input
+
+loop :: forall exp. Precedence -> exp -> ParserConfig exp -> Parser String exp
+loop precedence leftExp input = do
+  infixConfig <- optionMaybe $ lookAhead $ choice input.infix
+  infixConfig
+    # map parseInfix
+    # fromMaybe (pure leftExp)
   where
-  parser pr = do
-    left <- choice input.prefix
-    loop pr left
+    parseInfix infixConfig = 
+      if precedence < infixConfig.prec then do
+        _ <- choice input.infix
+        rightExp <- expressionParser_ (getPrecedence infixConfig) input
+        loop precedence (infixConfig.buildExp leftExp rightExp) input
+      else
+        pure leftExp
+    getPrecedence infixConfig =
+      case infixConfig.associativity of
+        LAssociative -> infixConfig.prec
+        RAssociative -> infixConfig.prec - 1
+    
 
-  loop currentPrecedence left = do
-    infx <- optionMaybe $ lookAhead $ choice input.infix
-    maybe
-      (pure left)
-      ( \fx ->
-          if currentPrecedence < fx.prec then do
-            mx <- choice input.infix
-            rExp <- parser (if mx.associativity == LAssociative then mx.prec else mx.prec - 1)
-            loop currentPrecedence (mx.buildExp left rExp)
-          else
-            pure left
-      )
-      infx
-
-infixLeft :: forall exp . String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
-infixLeft  operator precedence buildExpression = do
-  _ <- spaced $ string operator
+infixLeft :: forall exp. String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
+infixLeft operator precedence buildExpression = do
+  _ <- string operator
   pure
     { prec: precedence
     , buildExp: buildExpression
     , associativity: LAssociative
     }
 
-infixRight :: forall exp . String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
-infixRight  operator precedence buildExpression = do
-  _ <- spaced $ string operator
+infixRight :: forall exp. String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
+infixRight operator precedence buildExpression = do
+  _ <- string operator
   pure
     { prec: precedence
     , buildExp: buildExpression

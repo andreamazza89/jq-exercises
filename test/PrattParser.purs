@@ -61,4 +61,3 @@ intParser =
   many1 digit
     # map charsToInt
     # required
-    # spaced
