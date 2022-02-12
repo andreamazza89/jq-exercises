@@ -1,8 +1,6 @@
 module Parser (parse) where
 
-
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (all)
@@ -18,10 +16,10 @@ import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Json as Json
-import Prelude (bind, not, pure, (#), ($), ($>), (&&), (*>), (/=), (<<<), (>>>))
+import Prelude (bind, not, pure, (#), ($), (&&), (*>), (/=), (<<<), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
-import Text.Parsing.Parser.Combinators (chainl, many1, optional, try)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.Combinators (many1, optional, try)
+import Text.Parsing.Parser.String (satisfy)
 
 parse :: String -> Either ParseError Expression
 parse input = runParser input parser
@@ -30,15 +28,16 @@ parser :: Parser String Expression
 parser =
   fix
     ( \p ->
-        chainl (expressionParser p) (char '|' $> Pipe) Identity
+        expressionParser
+          { prefix:
+              [ arrayConstructorParser p
+              , accessorParser
+              , identityParser
+              , literalParser
+              ]
+          , infixP: [ infixLeft "|" 2 Pipe ]
+          }
     )
-
-expressionParser :: Parser String Expression -> Parser String Expression
-expressionParser p =
-  try (arrayConstructorParser p)
-    <|> try accessorParser
-    <|> try identityParser
-    <|> try literalParser
 
 literalParser :: Parser String Expression
 literalParser = do
@@ -58,11 +57,11 @@ accessorParser = do
       # spaced
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
-arrayConstructorParser p =
-  try emptyArray <|> try arrayWithItems
-    where
-    emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
-    arrayWithItems = (inSquares $ sepByCommas p) # map ArrayConstructor
+arrayConstructorParser p = try emptyArray <|> try arrayWithItems
+  where
+  emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
+
+  arrayWithItems = (inSquares $ sepByCommas p) # map ArrayConstructor
 
 targetParser :: Parser String Target
 targetParser = do
@@ -82,7 +81,7 @@ atKey = do
 
 keyChars :: Parser String Char
 keyChars = do
-  satisfy (\ch -> all (\test -> test ch) [isNotIdentity, isNotSpace, isNotSquareBracket])
+  satisfy (\ch -> all (\test -> test ch) [ isNotIdentity, isNotSpace, isNotSquareBracket ])
   where
   isNotIdentity = (/=) '.'
 

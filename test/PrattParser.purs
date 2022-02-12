@@ -18,22 +18,22 @@ main = do
   describe "Pratt Parsing" do
     it "addition and subtraction" do
       runParser "4 + 1 - 3 + 40"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, subtractParser ] })
+        (expressionParser { prefix: [ intParser ], infixP: [ addParser, subtractParser ] })
         `shouldEqual`
           Right (42)
     it "addition and multiplication" do
       runParser "2 * 3 + 1"
-        (expressionParser { prefix: [ intParser ], infix: [ addParser, multiplyParser ] })
+        (expressionParser { prefix: [ intParser ], infixP: [ addParser, multiplyParser ] })
         `shouldEqual`
           Right (7)
     it "left association" do
       runParser "8 / 2 / 2"
-        (expressionParser { prefix: [ intParser ], infix: [ divideParser LAssociative ] })
+        (expressionParser { prefix: [ intParser ], infixP: [ divideParser LAssociative ] })
         `shouldEqual`
           Right (2)
     it "right association" do
       runParser "8 / 2 / 2"
-        (expressionParser { prefix: [ intParser ], infix: [ divideParser RAssociative ] })
+        (expressionParser { prefix: [ intParser ], infixP: [ divideParser RAssociative ] })
         `shouldEqual`
           Right (8)
 

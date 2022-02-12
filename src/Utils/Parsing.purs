@@ -63,7 +63,7 @@ closeSquare = spaced $ char ']'
 -- http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 type ParserConfig exp =
   { prefix :: Array (Parser String exp)
-  , infix :: Array (InfixParser exp)
+  , infixP :: Array (InfixParser exp)
   }
 
 type InfixParser exp
@@ -92,14 +92,14 @@ expressionParser_ precedence input = do
 
 loop :: forall exp. Precedence -> exp -> ParserConfig exp -> Parser String exp
 loop precedence leftExp input = do
-  infixConfig <- optionMaybe $ lookAhead $ choice input.infix
+  infixConfig <- optionMaybe $ lookAhead $ choice input.infixP
   infixConfig
     # map parseInfix
     # fromMaybe (pure leftExp)
   where
     parseInfix infixConfig = 
       if precedence < infixConfig.prec then do
-        _ <- choice input.infix
+        _ <- choice input.infixP
         rightExp <- expressionParser_ (getPrecedence infixConfig) input
         loop precedence (infixConfig.buildExp leftExp rightExp) input
       else
