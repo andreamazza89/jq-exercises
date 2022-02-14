@@ -2,6 +2,7 @@ module Expression (Expression(..), Over(..), Path, Target(..)) where
 
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Functor (map)
+import Data.Maybe (Maybe)
 import Data.String (joinWith)
 import Json (Json)
 import Prelude (class Eq, class Show, show, (<>))
@@ -10,7 +11,7 @@ data Expression
   = Identity
   | Accessor Over Path
   | Literal Json
-  | ArrayConstructor Expression
+  | ArrayConstructor (Maybe Expression)
   | Pipe Expression Expression
   | Comma Expression Expression
 

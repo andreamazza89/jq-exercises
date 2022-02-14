@@ -5,11 +5,11 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (foldl)
 import Data.Functor (map)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (traverse)
 import Expression (Expression(..), Target(..))
 import Json (Json)
-import Json (atIndex, atKey, buildArray, values) as Json
+import Json (atIndex, atKey, buildArray, emptyArray, values) as Json
 import Prelude (bind, pure, (#), ($), (<>), (>>=))
 
 run :: Expression -> Array Json -> Either String (Array Json)
@@ -24,9 +24,14 @@ run (Pipe l r) input = run l input >>= run r
 run (Literal json) _ = Right [ json ]
 
 run (ArrayConstructor expression) input =
-  run expression input
-    # map Json.buildArray
-    # map Array.singleton
+  maybe emptyArray construct expression
+  where
+    construct exp =
+      run exp input
+        # map Json.buildArray
+        # map Array.singleton
+    emptyArray = 
+      Right [Json.emptyArray]
     
 run (Comma l r) input = do
   lExp <- run l input

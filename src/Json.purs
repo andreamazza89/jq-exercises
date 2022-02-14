@@ -3,6 +3,7 @@ module Json
   , atIndex
   , atKey
   , buildArray
+  , emptyArray
   , parser
   , values
   )
@@ -49,6 +50,9 @@ instance Show Json where
 -- Build
 buildArray :: Array Json -> Json
 buildArray = JArray
+
+emptyArray :: Json
+emptyArray = JArray []
 
 -- Read
 atKey :: String -> Json -> Maybe Json

@@ -10,6 +10,7 @@ module Helpers.Expression
   , atKey
   , comma
   , constructArray
+  , constructEmptyArray
   , identity
   , literal
   , pipe
@@ -20,7 +21,7 @@ module Helpers.Expression
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
 import Data.Functor (map)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Expression (Expression(..), Over(..), Target(..))
 import Json (Json)
 import Prelude (($), (>>>))
@@ -33,7 +34,10 @@ accessByIndex :: Array Int -> Expression
 accessByIndex = map AtIndex >>> accessor
 
 constructArray :: Expression -> Expression
-constructArray = ArrayConstructor
+constructArray = Just >>> ArrayConstructor
+
+constructEmptyArray :: Expression
+constructEmptyArray = ArrayConstructor Nothing
 
 literal :: Json -> Expression
 literal = Literal

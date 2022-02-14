@@ -12,7 +12,7 @@ import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.Int (fromString)
 import Data.List.Types (NonEmptyList)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
@@ -61,11 +61,17 @@ accessorParser = do
       # spaced
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
-arrayConstructorParser p = try arrayWithItems
+arrayConstructorParser p =
+  try emptyArray <|> try arrayWithItems
   where
-  -- emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
+  emptyArray = do
+    _ <- openSquare
+    _ <- closeSquare
+    pure (ArrayConstructor Nothing)
 
-  arrayWithItems = map ArrayConstructor (inSquares p)
+  arrayWithItems = do
+    exp <- inSquares p
+    pure $ ArrayConstructor (Just exp)
 
 targetParser :: Parser String Target
 targetParser = do

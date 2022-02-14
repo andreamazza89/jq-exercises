@@ -83,10 +83,10 @@ main = do
           """
           [ "33", "\"wat\"", "true", "\"gotta love mixing types\"" ]
     describe "Array constructor" do
-      -- it "builds an empty array" do
-      --   test (constructArray [])
-      --     jsonInputIgnored
-      --     [ "[]" ]
+      it "builds an empty array" do
+        test (constructEmptyArray)
+          jsonInputIgnored
+          [ "[]" ]
       it "builds an an array from the input" do
         test (constructArray ( accessByKeyNames [ "zero" ] ~ accessByKeyNames [ "one" ] ))
           """

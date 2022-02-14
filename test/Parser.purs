@@ -33,8 +33,8 @@ main = do
       it "mixed access" do
         testParser ".foo[3].bar[]" $ accessor [ atKey "foo", atIndex 3, atKey "bar", allItems ]
     describe "ArrayConstructor" do
-      -- it "empty array" do
-      --   testParser "[]" $ constructArray []
+      it "empty array" do
+        testParser "[]" $ constructEmptyArray
       it "identity" do
         testParser "[ . ]" $ constructArray identity
       it "literals" do
