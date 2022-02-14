@@ -3,7 +3,9 @@ module Json
   , atIndex
   , atKey
   , buildArray
+  , buildObject
   , emptyArray
+  , emptyObject
   , parser
   , values
   )
@@ -13,8 +15,8 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
+import Data.Array (drop, many, (!!))
 import Data.Array (fromFoldable, index) as Array
-import Data.Array (many)
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
@@ -23,8 +25,9 @@ import Data.Map (fromFoldable, lookup, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
+import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
-import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (>>>))
+import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (<*>), (/=), (<$>), (<>), (<<<), (>>>), (>>=))
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
@@ -52,7 +55,37 @@ buildArray :: Array Json -> Json
 buildArray = JArray
 
 emptyArray :: Json
-emptyArray = JArray []
+emptyArray = buildArray []
+
+buildObject :: Array Json -> Maybe Json
+buildObject arr =
+  chunk' arr >>= (\tups -> keyVals tups) >>= (Map.fromFoldable >>> JObject >>> Just)
+
+keyVals :: Array (Tuple Json Json) -> Maybe (Array (Tuple String Json))
+keyVals  arr = 
+  keyVals' arr # sequence
+
+keyVals' :: Array (Tuple Json Json) -> (Array (Maybe (Tuple String Json)))
+keyVals' =
+  map (\(Tuple key value) -> 
+          case key of
+            JString key' -> Just (Tuple key' value)
+            _ -> Nothing
+      )
+
+
+chunk' :: Array Json ->  Maybe (Array (Tuple Json Json))
+chunk' arr = sequence $ chunk arr
+    
+chunk :: Array Json ->  Array (Maybe (Tuple Json Json))
+chunk [] = []
+chunk [_] = [Nothing]
+chunk arr =
+  [(Tuple <$> arr !! 0 <*> arr !! 1)] <> chunk (drop 2 arr)
+
+emptyObject :: Json
+emptyObject = JObject (Map.fromFoldable [])
+
 
 -- Read
 atKey :: String -> Json -> Maybe Json

@@ -11,6 +11,8 @@ module Helpers.Expression
   , comma
   , constructArray
   , constructEmptyArray
+  , constructEmptyObject
+  , constructObject
   , identity
   , literal
   , pipe
@@ -38,6 +40,12 @@ constructArray = Just >>> ArrayConstructor
 
 constructEmptyArray :: Expression
 constructEmptyArray = ArrayConstructor Nothing
+
+constructObject :: Expression -> Expression
+constructObject = Just >>> ObjectConstructor
+
+constructEmptyObject :: Expression
+constructEmptyObject = ObjectConstructor Nothing
 
 literal :: Json -> Expression
 literal = Literal

@@ -1,6 +1,7 @@
 module Test.Parser where
 
 import Helpers.Expression
+import Test.Helpers.Json
 
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
@@ -8,7 +9,6 @@ import Effect.Exception (Error)
 import Expression (Expression)
 import Parser (parse)
 import Prelude (Unit, ($), discard)
-import Test.Helpers.Json
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -45,6 +45,28 @@ main = do
         testParser "[ [ 42 ] ]" $ constructArray (constructArray (literal (num 42.0)))
       it "array and then pipe" do
         testParser "[ 42 ] | ." $ constructArray (literal (num 42.0)) || identity
+    describe "ObjectConstructor" do
+      it "empty object" do
+        testParser "{}" $ constructEmptyObject
+      it "simple object" do
+        testParser
+          """
+            { "foo": 99 }
+          """
+          (constructObject ((literal (str "foo")) ~ (literal (num 99.0))))
+      it "object with expressions and literals" do
+        testParser
+          """
+            { "miao": .bar,
+              .: "ciao"
+            }
+          """
+          (constructObject
+            (
+              (literal (str "miao")) ~ (accessByKeyNames ["bar"]) ~
+              (identity)             ~ (literal (str "ciao"))
+            )
+          )
     describe "Pipes" do
       it "pipe" do
         testParser ". | .foo | ." $ identity || accessByKeyNames [ "foo" ] || identity

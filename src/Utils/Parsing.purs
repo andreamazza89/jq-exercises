@@ -12,6 +12,10 @@ import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
 comma :: Parser String Char
 comma = char ','
 
+colon :: Parser String Char
+colon = char ':'
+
+
 dash :: Parser String Char
 dash = (char '-')
 

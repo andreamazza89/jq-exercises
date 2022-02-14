@@ -9,41 +9,47 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (traverse)
 import Expression (Expression(..), Target(..))
 import Json (Json)
-import Json (atIndex, atKey, buildArray, emptyArray, values) as Json
-import Prelude (bind, pure, (#), ($), (<>), (>>=))
+import Json (atIndex, atKey, buildArray, buildObject, emptyArray, emptyObject, values) as Json
+import Prelude (bind, pure, (#), ($), (<>), (>>=), (>>>))
 
 run :: Expression -> Array Json -> Either String (Array Json)
 run Identity input = Right input
 
 run (Accessor _ path) input =
-  foldl accumulator (Just input) path
+  foldl accessor (Just input) path
     # toEither
 
 run (Pipe l r) input = run l input >>= run r
 
 run (Literal json) _ = Right [ json ]
 
-run (ArrayConstructor expression) input =
-  maybe emptyArray construct expression
+run (ArrayConstructor expression) input = maybe emptyArray construct expression
   where
-    construct exp =
-      run exp input
-        # map Json.buildArray
-        # map Array.singleton
-    emptyArray = 
-      Right [Json.emptyArray]
-    
+  construct exp =
+    run exp input
+      # map Json.buildArray
+      # map Array.singleton
+
+  emptyArray = Right [ Json.emptyArray ]
+
 run (Comma l r) input = do
   lExp <- run l input
   rExp <- run r input
   pure $ lExp <> rExp
 
-accumulator :: Maybe (Array Json) -> Target -> Maybe (Array Json)
-accumulator acc (Key k) = acc >>= traverse (Json.atKey k)
+run (ObjectConstructor Nothing) _ = pure [ Json.emptyObject ]
 
-accumulator acc (AtIndex i) = acc >>= traverse (Json.atIndex i)
+run (ObjectConstructor (Just expression)) input = do
+  stuff <- map Json.buildObject $ run expression input
+  maybe (Left "Fail to build json Object") (Array.singleton >>> pure) stuff
 
-accumulator acc Each = acc >>= traverse Json.values # map concat
+
+accessor :: Maybe (Array Json) -> Target -> Maybe (Array Json)
+accessor acc (Key k) = acc >>= traverse (Json.atKey k)
+
+accessor acc (AtIndex i) = acc >>= traverse (Json.atIndex i)
+
+accessor acc Each = acc >>= traverse Json.values # map concat
 
 toEither :: Maybe (Array Json) -> Either String (Array Json)
 toEither output = case output of

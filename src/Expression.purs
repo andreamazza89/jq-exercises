@@ -4,6 +4,7 @@ import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Functor (map)
 import Data.Maybe (Maybe)
 import Data.String (joinWith)
+import Data.Tuple (Tuple)
 import Json (Json)
 import Prelude (class Eq, class Show, show, (<>))
 
@@ -12,6 +13,7 @@ data Expression
   | Accessor Over Path
   | Literal Json
   | ArrayConstructor (Maybe Expression)
+  | ObjectConstructor (Maybe Expression)
   | Pipe Expression Expression
   | Comma Expression Expression
 
@@ -27,6 +29,8 @@ data Target
   | AtIndex Int
   | Each
 
+type KeyValue = Tuple
+
 derive instance equalExpression :: Eq Expression
 
 derive instance equalOver :: Eq Over
@@ -37,6 +41,7 @@ instance Show Expression where
   show Identity = "Identity"
   show (Pipe l r) = show l <> " || " <> show r
   show (ArrayConstructor items) = show items
+  show (ObjectConstructor keyValues) = show keyValues
   show (Literal json) = show json
   show (Accessor Input path) = "." <> joinPath path
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path

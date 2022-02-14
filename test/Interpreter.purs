@@ -1,6 +1,7 @@
 module Test.Interpreter where
 
 import Helpers.Expression
+
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -10,7 +11,7 @@ import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard)
-import Test.Helpers.Json (num)
+import Test.Helpers.Json (num, str)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Parsing.Parser (runParser)
@@ -105,6 +106,20 @@ main = do
             }
           """
           [ "[0,1,2,3]" ]
+
+    describe "Object constructor" do
+      it "builds an empty object" do
+        test (constructEmptyObject)
+          jsonInputIgnored
+          [ "{}" ]
+      it "builds a simple object with literals" do
+        test (constructObject ((literal (str "ciao")) ~ (literal (num 42.0))))
+          jsonInputIgnored
+          [
+            """
+              { "ciao": 42 }
+            """
+          ]
     describe "Pipe" do
       it "simple pipe" do
         test (accessByIndex [ 0 ] || identity)

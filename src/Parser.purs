@@ -1,12 +1,13 @@
-module Parser (parse) where
+module Parser
+  ( identityParser
+  , parse
+  ) where
 
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Data.Array (all)
 import Data.Array.NonEmpty (fromFoldable) as NE
-import Data.CodePoint.Unicode (isSpace)
+import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
 import Data.Foldable as Foldable
 import Data.Functor (map)
@@ -17,7 +18,7 @@ import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
 import Expression (Expression(..), Over(..), Target(..))
 import Json as Json
-import Prelude (bind, not, pure, (#), ($), (&&), (*>), (/=), (<<<), (>>>))
+import Prelude (bind, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (satisfy)
@@ -31,7 +32,8 @@ parser =
     ( \p ->
         expressionParser
           { prefix:
-              [ arrayConstructorParser p
+              [ objectConstructorParser p
+              , arrayConstructorParser p
               , accessorParser
               , identityParser
               , literalParser
@@ -39,6 +41,9 @@ parser =
           , infixP:
               [ infixLeft "|" 2 Pipe
               , infixLeft "," 3 Comma
+              -- this is kinda hacky. It simplifies parsing the object literal as simply an array of [key, value, key, value], but I wonder
+              -- if it's going to cause problems down the line
+              , infixLeft ":" 3 Comma
               ]
           }
     )
@@ -48,6 +53,31 @@ literalParser = do
   Json.parser
     # map Literal
     # spaced
+
+arrayConstructorParser :: Parser String Expression -> Parser String Expression
+arrayConstructorParser p = try emptyArray <|> try arrayWithItems
+  where
+  emptyArray = do
+    _ <- openSquare
+    _ <- closeSquare
+    pure (ArrayConstructor Nothing)
+
+  arrayWithItems = do
+    exp <- inSquares p
+    pure $ ArrayConstructor (Just exp)
+
+objectConstructorParser :: Parser String Expression -> Parser String Expression
+objectConstructorParser p = do
+  try emptyObject <|> objectWithKeyValues
+  where
+  emptyObject = do
+    _ <- openCurly
+    _ <- closeCurly
+    pure (ObjectConstructor Nothing)
+
+  objectWithKeyValues = do
+    keyValues <- inCurlies p
+    pure $ ObjectConstructor (Just keyValues)
 
 accessorParser :: Parser String Expression
 accessorParser = do
@@ -59,19 +89,6 @@ accessorParser = do
       # map NE.fromFoldable
       # required
       # spaced
-
-arrayConstructorParser :: Parser String Expression -> Parser String Expression
-arrayConstructorParser p =
-  try emptyArray <|> try arrayWithItems
-  where
-  emptyArray = do
-    _ <- openSquare
-    _ <- closeSquare
-    pure (ArrayConstructor Nothing)
-
-  arrayWithItems = do
-    exp <- inSquares p
-    pure $ ArrayConstructor (Just exp)
 
 targetParser :: Parser String Target
 targetParser = do
@@ -91,13 +108,7 @@ atKey = do
 
 keyChars :: Parser String Char
 keyChars = do
-  satisfy (\ch -> all (\test -> test ch) [ isNotIdentity, isNotSpace, isNotSquareBracket ])
-  where
-  isNotIdentity = (/=) '.'
-
-  isNotSpace = not <<< isSpace <<< codePointFromChar
-
-  isNotSquareBracket c = c /= '[' && c /= ']'
+  satisfy (codePointFromChar >>> isAlphaNum)
 
 wholeArray :: Parser String Target
 wholeArray = do

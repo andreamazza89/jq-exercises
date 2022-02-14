@@ -45,6 +45,8 @@ JSON -> Expression -> JSON
 ---
 ## Questions
 
+- (reword to explain/think better): question about the `:` hack in parsing an object builder. It moves a compile-time error to a runtime one, but that feels fine, as it
+  makes parsing object constructors painless?
 - What's backtracking in jq and what implications does it have for me? Can I just ignore to start with?
 - The documentation describes the language as having _second-class higher-order functions of dynamic extent_ - what does
   this mean?
@@ -95,3 +97,6 @@ associative property and described in [this wiki](https://en.m.wikipedia.org/wik
 > the order in which the operations are performed does not matter as long as the sequence of the operands is not changed.
 
 Addition is an example of this property, where it doesn't matter how you parenthesise, it will always yield the same result.
+
+### Pratt Parsers
+TODO - details here
