@@ -10,7 +10,7 @@ import Data.Traversable (traverse)
 import Expression (Expression(..), Target(..))
 import Json (Json)
 import Json (atIndex, atKey, buildArray, values) as Json
-import Prelude (flip, (#), (>>=), (>>>))
+import Prelude (bind, pure, (#), ($), (<>), (>>=))
 
 run :: Expression -> Array Json -> Either String (Array Json)
 run Identity input = Right input
@@ -23,9 +23,15 @@ run (Pipe l r) input = run l input >>= run r
 
 run (Literal json) _ = Right [ json ]
 
-run (ArrayConstructor expressions) input =
-  traverse (flip run input) expressions
-    # map (concat >>> Json.buildArray >>> Array.singleton)
+run (ArrayConstructor expression) input =
+  run expression input
+    # map Json.buildArray
+    # map Array.singleton
+    
+run (Comma l r) input = do
+  lExp <- run l input
+  rExp <- run r input
+  pure $ lExp <> rExp
 
 accumulator :: Maybe (Array Json) -> Target -> Maybe (Array Json)
 accumulator acc (Key k) = acc >>= traverse (Json.atKey k)

@@ -1,6 +1,7 @@
 module Parser (parse) where
 
 import Utils.Parsing
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (all)
@@ -35,7 +36,10 @@ parser =
               , identityParser
               , literalParser
               ]
-          , infixP: [ infixLeft "|" 2 Pipe ]
+          , infixP:
+              [ infixLeft "|" 2 Pipe
+              , infixLeft "," 3 Comma
+              ]
           }
     )
 
@@ -57,11 +61,11 @@ accessorParser = do
       # spaced
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
-arrayConstructorParser p = try emptyArray <|> try arrayWithItems
+arrayConstructorParser p = try arrayWithItems
   where
-  emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
+  -- emptyArray = openSquare *> closeSquare *> pure (ArrayConstructor [])
 
-  arrayWithItems = (inSquares $ sepByCommas p) # map ArrayConstructor
+  arrayWithItems = map ArrayConstructor (inSquares p)
 
 targetParser :: Parser String Target
 targetParser = do

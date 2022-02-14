@@ -10,8 +10,9 @@ data Expression
   = Identity
   | Accessor Over Path
   | Literal Json
-  | ArrayConstructor (Array Expression)
+  | ArrayConstructor Expression
   | Pipe Expression Expression
+  | Comma Expression Expression
 
 type Path
   = NonEmptyArray Target
@@ -38,6 +39,7 @@ instance Show Expression where
   show (Literal json) = show json
   show (Accessor Input path) = "." <> joinPath path
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path
+  show (Comma l r) = show l <> " , " <> show r
 
 joinPath :: Path -> String
 joinPath path = joinWith "." (map show (toArray path))

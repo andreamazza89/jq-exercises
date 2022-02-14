@@ -1,5 +1,6 @@
 module Helpers.Expression
   ( (||)
+  , (~)
   , accessAllItems
   , accessByIndex
   , accessByKeyNames
@@ -7,12 +8,14 @@ module Helpers.Expression
   , allItems
   , atIndex
   , atKey
+  , comma
   , constructArray
   , identity
   , literal
   , pipe
   , toNonEmpty
-  ) where
+  )
+  where
 
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
@@ -29,7 +32,7 @@ accessByKeyNames = map Key >>> accessor
 accessByIndex :: Array Int -> Expression
 accessByIndex = map AtIndex >>> accessor
 
-constructArray :: Array Expression -> Expression
+constructArray :: Expression -> Expression
 constructArray = ArrayConstructor
 
 literal :: Json -> Expression
@@ -60,3 +63,8 @@ pipe :: Expression -> Expression -> Expression
 pipe = Pipe
 
 infixl 6 pipe as ||
+
+comma :: Expression -> Expression -> Expression
+comma = Comma
+
+infixl 5 comma as ~

@@ -32,22 +32,28 @@ main = do
         testParser ".[]" $ accessAllItems
       it "mixed access" do
         testParser ".foo[3].bar[]" $ accessor [ atKey "foo", atIndex 3, atKey "bar", allItems ]
+    describe "ArrayConstructor" do
+      -- it "empty array" do
+      --   testParser "[]" $ constructArray []
+      it "identity" do
+        testParser "[ . ]" $ constructArray identity
+      it "literals" do
+        testParser "[ 42.42, . ]" $ constructArray (literal (num 42.42) ~ identity)
+      it "with pipe in it" do
+        testParser "[ 42 | . ]" $ constructArray (literal (num 42.0) || identity)
+      it "nested" do
+        testParser "[ [ 42 ] ]" $ constructArray (constructArray (literal (num 42.0)))
+      it "array and then pipe" do
+        testParser "[ 42 ] | ." $ constructArray (literal (num 42.0)) || identity
     describe "Pipes" do
       it "pipe" do
         testParser ". | .foo | ." $ identity || accessByKeyNames [ "foo" ] || identity
-    describe "ArrayConstructor" do
-      it "empty array" do
-        testParser "[]" $ constructArray []
-      it "identity" do
-        testParser "[ . ]" $ constructArray [ identity ]
-      it "literals" do
-        testParser "[ 42.42, . ]" $ constructArray [ literal (num 42.42), identity ]
-      it "with pipe in it" do
-        testParser "[ 42 | . ]" $ constructArray [ literal (num 42.0) || identity ]
-      it "nested" do
-        testParser "[ [ 42 ] ]" $ constructArray [ constructArray [ literal (num 42.0) ] ]
-      it "array and then pipe" do
-        testParser "[ 42 ] | ." $ constructArray [ literal (num 42.0) ] || identity
+    describe "Comma" do
+      it "simple commas" do
+        testParser ". , 42 , ." $ identity ~ (literal (num 42.0)) ~ identity
+    describe "Operator Precedence" do
+      it "comma has higher precedence than pipe" do
+        testParser ". | 42 , ." $ identity || ((literal (num 42.0)) ~ identity)
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected
