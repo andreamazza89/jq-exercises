@@ -24,7 +24,7 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
 import Data.Functor (map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Expression (Expression(..), Over(..), Target(..))
+import Expression (Expression(..), Over(..), Target(..), KeyValuePair)
 import Json (Json)
 import Prelude (($), (>>>))
 
@@ -41,11 +41,11 @@ constructArray = Just >>> ArrayConstructor
 constructEmptyArray :: Expression
 constructEmptyArray = ArrayConstructor Nothing
 
-constructObject :: Expression -> Expression
-constructObject = Just >>> ObjectConstructor
+constructObject :: Array (KeyValuePair) -> Expression
+constructObject =  ObjectConstructor
 
 constructEmptyObject :: Expression
-constructEmptyObject = ObjectConstructor Nothing
+constructEmptyObject = constructObject []
 
 literal :: Json -> Expression
 literal = Literal

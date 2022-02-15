@@ -3,6 +3,7 @@ module Test.Main where
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Prelude (Unit, ($), discard)
+import Test.CartesianProduct as CartesianProduct
 import Test.Interpreter (main) as Interpreter
 import Test.Parser (main) as Parser
 import Test.PrattParser as PrattParser
@@ -16,3 +17,4 @@ main =
         Parser.main
         Interpreter.main
         PrattParser.main
+        CartesianProduct.main

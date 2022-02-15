@@ -1,4 +1,4 @@
-module Expression (Expression(..), Over(..), Path, Target(..)) where
+module Expression (Expression(..) , Over(..), Path, Target(..), KeyValuePair(..)) where
 
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Functor (map)
@@ -13,9 +13,12 @@ data Expression
   | Accessor Over Path
   | Literal Json
   | ArrayConstructor (Maybe Expression)
-  | ObjectConstructor (Maybe Expression)
+  | ObjectConstructor (Array KeyValuePair)
   | Pipe Expression Expression
   | Comma Expression Expression
+
+type KeyValuePair =
+  Tuple Expression Expression
 
 type Path
   = NonEmptyArray Target

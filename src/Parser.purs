@@ -4,6 +4,7 @@ module Parser
   ) where
 
 import Utils.Parsing
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array.NonEmpty (fromFoldable) as NE
@@ -16,7 +17,8 @@ import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
-import Expression (Expression(..), Over(..), Target(..))
+import Data.Tuple (Tuple(..))
+import Expression (Expression(..), Over(..), Target(..), KeyValuePair(..))
 import Json as Json
 import Prelude (bind, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
@@ -41,12 +43,25 @@ parser =
           , infixP:
               [ infixLeft "|" 2 Pipe
               , infixLeft "," 3 Comma
-              -- this is kinda hacky. It simplifies parsing the object literal as simply an array of [key, value, key, value], but I wonder
-              -- if it's going to cause problems down the line
-              , infixLeft ":" 3 Comma
               ]
           }
     )
+
+allButComma :: Parser String Expression -> Parser String Expression
+allButComma p =
+  expressionParser
+    { prefix:
+        [ objectConstructorParser p
+        , arrayConstructorParser p
+        , accessorParser
+        , identityParser
+        , literalParser
+        ]
+    , infixP:
+        [ infixLeft "|" 2 Pipe
+        ]
+    }
+
 
 literalParser :: Parser String Expression
 literalParser = do
@@ -73,11 +88,18 @@ objectConstructorParser p = do
   emptyObject = do
     _ <- openCurly
     _ <- closeCurly
-    pure (ObjectConstructor Nothing)
+    pure (ObjectConstructor [])
 
   objectWithKeyValues = do
-    keyValues <- inCurlies p
-    pure $ ObjectConstructor (Just keyValues)
+    keyValues <- inCurlies $ sepByCommas keyValueParser
+    pure $ ObjectConstructor (keyValues)
+
+  keyValueParser = do
+    key <- p
+    _ <- colon
+    value <- allButComma p
+    pure $ Tuple key value
+
 
 accessorParser :: Parser String Expression
 accessorParser = do

@@ -113,11 +113,45 @@ main = do
           jsonInputIgnored
           [ "{}" ]
       it "builds a simple object with literals" do
-        test (constructObject ((literal (str "ciao")) ~ (literal (num 42.0))))
+        test (constructObject [Tuple (literal (str "ciao")) (literal (num 42.0))])
           jsonInputIgnored
           [
             """
               { "ciao": 42 }
+            """
+          ]
+      it "builds multiple objects when keys and/or values yield multiple outputs" do
+        test (constructObject [
+                                Tuple (literal (str "ciao"))                 (accessor [atKey "numbers", allItems])
+                              , Tuple (accessor [atKey "strings", allItems]) (literal (num 42.0))
+                              ]
+             )
+            """
+              {
+                "numbers": [1, 2],
+                "strings": ["*", "~"]
+              }
+            """
+          [
+            """
+              { "ciao": 1,
+                "*": 42
+              }
+            """
+          , """
+              { "ciao": 1,
+                "~": 42
+              }
+            """
+          , """
+              { "ciao": 2,
+                "*": 42
+              }
+            """
+          , """
+              { "ciao": 2,
+                "~": 42
+              }
             """
           ]
     describe "Pipe" do

@@ -4,6 +4,7 @@ module Json
   , atKey
   , buildArray
   , buildObject
+  , buildObject2
   , emptyArray
   , emptyObject
   , parser
@@ -25,8 +26,9 @@ import Data.Map (fromFoldable, lookup, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
-import Data.Traversable (sequence)
+import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (<*>), (/=), (<$>), (<>), (<<<), (>>>), (>>=))
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (many1, try)
@@ -56,6 +58,17 @@ buildArray = JArray
 
 emptyArray :: Json
 emptyArray = buildArray []
+
+buildObject2 :: Array (Tuple Json Json)-> Maybe Json
+buildObject2 arr =
+  traverse convertKey arr
+  # map (Map.fromFoldable >>> JObject)
+  where
+    convertKey (Tuple key value)= case key of
+                        JString k -> Just $ Tuple k value
+                        _ -> Nothing
+  
+
 
 buildObject :: Array Json -> Maybe Json
 buildObject arr =

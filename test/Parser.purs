@@ -5,6 +5,7 @@ import Test.Helpers.Json
 
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression)
 import Parser (parse)
@@ -53,7 +54,7 @@ main = do
           """
             { "foo": 99 }
           """
-          (constructObject ((literal (str "foo")) ~ (literal (num 99.0))))
+          (constructObject [(Tuple (literal (str "foo")) (literal (num 99.0)))])
       it "object with expressions and literals" do
         testParser
           """
@@ -62,10 +63,10 @@ main = do
             }
           """
           (constructObject
-            (
-              (literal (str "miao")) ~ (accessByKeyNames ["bar"]) ~
-              (identity)             ~ (literal (str "ciao"))
-            )
+            [
+              Tuple (literal (str "miao")) (accessByKeyNames ["bar"])
+            , Tuple (identity)             (literal (str "ciao"))
+            ]
           )
     describe "Pipes" do
       it "pipe" do
