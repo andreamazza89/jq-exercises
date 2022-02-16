@@ -77,6 +77,8 @@ main = do
     describe "Operator Precedence" do
       it "comma has higher precedence than pipe" do
         testParser ". | 42 , ." $ identity || ((literal (num 42.0)) ~ identity)
+      it "parentheses override precedence" do
+        testParser "(. | 42) , ." $ (identity || (literal (num 42.0))) ~ identity
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected

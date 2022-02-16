@@ -4,6 +4,7 @@ module Parser
   ) where
 
 import Utils.Parsing
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
@@ -36,7 +37,8 @@ parserConfig :: Parser String Expression -> (Array String) -> ParserConfig Expre
 parserConfig p infixToKeep =
   let
     allPrefix =
-      [ objectConstructorParser p
+      [ parenthesesParser p
+      , objectConstructorParser p
       , arrayConstructorParser p
       , accessorParser
       , identityParser
@@ -71,6 +73,11 @@ objectValueParser p =
   -- consume the comma operator, like `("a" |key) : (42 , "b" |value)` and then blow up.
   in
     expressionParser (parserConfig p allInfixButComma)
+
+parenthesesParser :: Parser String Expression -> Parser String Expression 
+parenthesesParser =
+  inParentheses
+  
 
 literalParser :: Parser String Expression
 literalParser = do

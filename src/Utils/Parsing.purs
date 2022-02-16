@@ -4,7 +4,7 @@ import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.Foldable as Foldable
 import Data.Int (fromString) as Int
-import Data.List.NonEmpty (NonEmptyList(..))
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton) as String
@@ -68,6 +68,15 @@ openSquare = spaced $ char '['
 
 closeSquare :: Parser String Char
 closeSquare = spaced $ char ']'
+
+inParentheses :: forall a. Parser String a -> Parser String a
+inParentheses = between openParenthesis closeParenthesis
+
+openParenthesis :: Parser String Char
+openParenthesis = spaced $ char '('
+
+closeParenthesis :: Parser String Char
+closeParenthesis = spaced $ char ')'
 
 -- Int
 
