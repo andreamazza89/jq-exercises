@@ -1,7 +1,6 @@
 module Test.Interpreter where
 
 import Helpers.Expression
-
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -10,7 +9,7 @@ import Effect.Exception (Error)
 import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
-import Prelude (Unit, discard)
+import Prelude (Unit, discard, pure, unit)
 import Test.Helpers.Json (num, str)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
@@ -89,7 +88,7 @@ main = do
           jsonInputIgnored
           [ "[]" ]
       it "builds an an array from the input" do
-        test (constructArray ( accessByKeyNames [ "zero" ] ~ accessByKeyNames [ "one" ] ))
+        test (constructArray (accessByKeyNames [ "zero" ] ~ accessByKeyNames [ "one" ]))
           """
             {
               "zero": 0,
@@ -98,7 +97,7 @@ main = do
           """
           [ "[0, 1]" ]
       it "flattens nested arrays" do
-        test (constructArray ( accessor [ atKey "zero", allItems ] ~ accessByKeyNames [ "three" ] ))
+        test (constructArray (accessor [ atKey "zero", allItems ] ~ accessByKeyNames [ "three" ]))
           """
             {
               "zero": [0,1,2],
@@ -106,35 +105,35 @@ main = do
             }
           """
           [ "[0,1,2,3]" ]
-
     describe "Object constructor" do
       it "builds an empty object" do
         test (constructEmptyObject)
           jsonInputIgnored
           [ "{}" ]
       it "builds a simple object with literals" do
-        test (constructObject [Tuple (literal (str "ciao")) (literal (num 42.0))])
+        test (constructObject [ Tuple (literal (str "ciao")) (literal (num 42.0)) ])
           jsonInputIgnored
-          [
-            """
+          [ """
               { "ciao": 42 }
             """
           ]
+      it "fails if an object key is not a string" do
+        testFailure (constructObject [ Tuple (literal (num 42.0)) (literal (num 42.0)) ])
+          jsonInputIgnored
       it "builds multiple objects when keys and/or values yield multiple outputs" do
-        test (constructObject 
-               [
-                 Tuple (literal (str "ciao"))                 (accessor [atKey "numbers", allItems])
-               , Tuple (accessor [atKey "strings", allItems]) (literal (num 42.0))
-               ]
-             )
-            """
+        test
+          ( constructObject
+              [ Tuple (literal (str "ciao")) (accessor [ atKey "numbers", allItems ])
+              , Tuple (accessor [ atKey "strings", allItems ]) (literal (num 42.0))
+              ]
+          )
+          """
               {
                 "numbers": [1, 2],
                 "strings": ["*", "~"]
               }
             """
-          [
-            """
+          [ """
               { "ciao": 1,
                 "*": 42
               }
@@ -166,6 +165,15 @@ main = do
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of
   Tuple (Right i) (Right o) -> Interpreter.run expression [ i ] `shouldEqual` (Right o)
+  _ -> fail "failed to parse JSON"
+  where
+  parseJson s = runParser s Json.parser
+
+testFailure :: forall a. MonadThrow Error a => Expression -> String -> a Unit
+testFailure expression input = case parseJson input of
+  Right i -> case Interpreter.run expression [ i ] of
+    Left _ -> pure unit
+    Right _ -> fail "this test should have seen the interpreter fail"
   _ -> fail "failed to parse JSON"
   where
   parseJson s = runParser s Json.parser

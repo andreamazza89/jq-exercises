@@ -65,10 +65,10 @@ objectValueParser :: Parser String Expression -> Parser String Expression
 objectValueParser p =
   let
     allInfixButComma = Array.delete "comma" allInfixParsers
-  -- When parsing object constructon, we need to 'disable' the comma parser while
+  -- When parsing an object constructor, we need to 'disable' the comma parser while
   -- parsing the right hand side of a `<key>: <value>` pair.
   -- This is because otherwise given something like `"a": 42, "b": 33`, our parser would
-  -- yield think hit the comma operator, like `("a" - key) : (42 , "b" - value)` and then blow up.
+  -- consume the comma operator, like `("a" |key) : (42 , "b" |value)` and then blow up.
   in
     expressionParser (parserConfig p allInfixButComma)
 
