@@ -121,10 +121,11 @@ main = do
             """
           ]
       it "builds multiple objects when keys and/or values yield multiple outputs" do
-        test (constructObject [
-                                Tuple (literal (str "ciao"))                 (accessor [atKey "numbers", allItems])
-                              , Tuple (accessor [atKey "strings", allItems]) (literal (num 42.0))
-                              ]
+        test (constructObject 
+               [
+                 Tuple (literal (str "ciao"))                 (accessor [atKey "numbers", allItems])
+               , Tuple (accessor [atKey "strings", allItems]) (literal (num 42.0))
+               ]
              )
             """
               {

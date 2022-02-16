@@ -8,13 +8,18 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import Expression (Expression(..), Target(..))
+import Expression (Expression(..), Target(..), KeyValuePair)
 import Json (Json)
 import Json (atIndex, atKey, buildArray, buildObject2, emptyArray, emptyObject, values) as Json
-import Prelude (bind, pure, (#), ($), (<$>), (<*>), (<>), (>>=))
-import Utils.CartesianProduct as Cartesian
+import Prelude (bind, pure, (#), ($), (<$>), (<*>), (<>), (>>=), (>>>))
 
-run :: Expression -> Array Json -> Either String (Array Json)
+type Input
+  = Array Json
+
+type Output
+  = Array Json
+
+run :: Expression -> Input -> Either String Output
 run Identity input = Right input
 
 run (Accessor _ path) input =
@@ -40,44 +45,34 @@ run (Comma l r) input = do
   pure $ lExp <> rExp
 
 run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
+
 run (ObjectConstructor keyValuePairs) input = do
-  kvs <- one keyValuePairs input # map two # map Cartesian.combine-- map concat # map (map Array.singleton)
+  kvs <-
+    expandKeyValuePairs keyValuePairs input
+      # map sequence
   maybe (Left "boom") pure (traverse Json.buildObject2 kvs)
 
-  -- stuff <- map Json.buildObject $ run expression input
-  -- maybe (Left "Fail to build json Object") (Array.singleton >>> pure) stuff
-
+-- stuff <- map Json.buildObject $ run expression input
+-- maybe (Left "Fail to build json Object") (Array.singleton >>> pure) stuff
 -- [(k, v), (k, v) ...]
-  -- one
--- [([a], [2, 3]), ([b, c], [42]) ...]
-  -- two
+-- expandKeyValuePairs
+-- [ ([a], [2,3]), ([b,c], [42]) ...]
 -- [ [(a,2), (a, 3)], [(b, 42), (c, 42)] ...]]
-  -- three
+-- cartesian
 -- [ [(a,2), (b, 42)], [(a, 3), (b, 42)], [(a,2), (c,42)]...]]
-
--- [[(k1,v1)], [(k1, v2)], ...]]
-
-one :: Array (Tuple Expression Expression) -> Array Json -> Either String (Array (Tuple (Array Json) (Array Json)))
-one arr input =
-  sequence (map (\(Tuple key val) ->
-    Tuple <$> run key input <*> run val input
-  ) arr)
-
-two :: Array (Tuple (Array Json) (Array Json)) -> Array (Array (Tuple Json Json))
-two =
-  map cartesian
-
--- three :: Array (Array (Tuple Json Json)) ->  Array (Array (Tuple Json Json))
--- three arr = 
---   where
---     go acc arr counter =
-
-cartesian :: Tuple (Array Json) (Array Json) -> Array (Tuple Json Json)
-cartesian (Tuple keys values) = do
-  k <- keys
-  v <- values
-  pure $ Tuple k v
-  
+expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
+expandKeyValuePairs arr input =
+  traverse (expand >>> combine) arr
+  where
+    expand (Tuple keyExp valExp) =
+      Tuple <$> run keyExp input <*> run valExp input
+    combine =
+      map
+        (\(Tuple keys values) -> do
+            k <- keys
+            v <- values
+            pure $ Tuple k v
+        )
 
 accessor :: Maybe (Array Json) -> Target -> Maybe (Array Json)
 accessor acc (Key k) = acc >>= traverse (Json.atKey k)
