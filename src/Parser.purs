@@ -11,13 +11,9 @@ import Data.Array as Array
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
-import Data.Foldable as Foldable
 import Data.Functor (map)
-import Data.Int (fromString)
-import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
-import Data.String.CodeUnits (singleton)
 import Data.Tuple (Tuple(..), fst, snd)
 import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
 import Json as Json
@@ -149,16 +145,3 @@ identityParser :: Parser String Expression
 identityParser = do
   _ <- spaced dot
   pure Identity
-
--- Helpers
-charsToString :: NonEmptyList Char -> String
-charsToString = Foldable.foldMap singleton
-
-charsToInt :: NonEmptyList Char -> Maybe Int
-charsToInt = charsToString >>> fromString
-
-intParser :: Parser String Int
-intParser =
-  many1 digit
-    # map charsToInt
-    # required

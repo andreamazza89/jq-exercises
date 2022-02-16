@@ -1,17 +1,11 @@
 module Test.PrattParser where
 
-import Prelude (Unit, discard, map, (#), (*), (+), (-), (/), (>>>))
+import Prelude (Unit, discard, (*), (+), (-), (/))
 import Utils.Parsing
 import Data.Either (Either(..))
-import Data.Foldable as Foldable
-import Data.Int (fromString)
-import Data.List.NonEmpty (NonEmptyList)
-import Data.Maybe (Maybe)
-import Data.String.CodeUnits (singleton)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Text.Parsing.Parser (Parser, runParser)
-import Text.Parsing.Parser.Combinators (many1)
+import Text.Parsing.Parser (runParser)
 
 main :: Spec Unit
 main = do
@@ -49,15 +43,3 @@ multiplyParser = infixLeft "*" 2 (*)
 divideParser :: Associativity -> InfixParser Int
 divideParser LAssociative = infixLeft "/" 3 (/)
 divideParser RAssociative = infixRight "/" 3 (/)
-
-charsToString :: NonEmptyList Char -> String
-charsToString = Foldable.foldMap singleton
-
-charsToInt :: NonEmptyList Char -> Maybe Int
-charsToInt = charsToString >>> fromString
-
-intParser :: Parser String Int
-intParser =
-  many1 digit
-    # map charsToInt
-    # required

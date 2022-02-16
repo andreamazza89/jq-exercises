@@ -2,13 +2,18 @@ module Utils.Parsing where
 
 import Data.Array (fromFoldable) as Array
 import Data.CodePoint.Unicode (isDecDigit)
+import Data.Foldable as Foldable
+import Data.Int (fromString) as Int
+import Data.List.NonEmpty (NonEmptyList(..))
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
+import Data.String.CodeUnits (singleton) as String
 import Prelude (bind, discard, map, pure, (#), ($), (-), (<), (>>>))
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators (between, choice, lookAhead, optionMaybe, sepBy)
+import Text.Parsing.Parser.Combinators (between, choice, lookAhead, many1, optionMaybe, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
 
+-- Single character
 comma :: Parser String Char
 comma = char ','
 
@@ -25,6 +30,7 @@ digit = satisfy (codePointFromChar >>> isDecDigit)
 dot :: Parser String Char
 dot = char '.'
 
+-- Parser Modifiers
 quoted :: forall a. Parser String a -> Parser String a
 quoted = between (char '"') (char '"')
 
@@ -62,6 +68,21 @@ openSquare = spaced $ char '['
 
 closeSquare :: Parser String Char
 closeSquare = spaced $ char ']'
+
+-- Int
+
+intParser :: Parser String Int
+intParser =
+  many1 digit
+    # map charsToInt
+    # required
+
+charsToInt :: NonEmptyList Char -> Maybe Int
+charsToInt = charsToString >>> Int.fromString
+
+charsToString :: NonEmptyList Char -> String
+charsToString = Foldable.foldMap String.singleton
+
 
 -- Parsing expressions with a Pratt Parser - this blog post really helped me figure it out:
 -- http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
