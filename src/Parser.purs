@@ -4,9 +4,10 @@ module Parser
   ) where
 
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.Array (elem)
+import Data.Array as Array
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
@@ -17,10 +18,10 @@ import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton)
-import Data.Tuple (Tuple(..))
-import Expression (Expression(..), Over(..), Target(..), KeyValuePair(..))
+import Data.Tuple (Tuple(..), fst, snd)
+import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
 import Json as Json
-import Prelude (bind, pure, (#), ($), (>>>))
+import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (satisfy)
@@ -32,36 +33,48 @@ parser :: Parser String Expression
 parser =
   fix
     ( \p ->
-        expressionParser
-          { prefix:
-              [ objectConstructorParser p
-              , arrayConstructorParser p
-              , accessorParser
-              , identityParser
-              , literalParser
-              ]
-          , infixP:
-              [ infixLeft "|" 2 Pipe
-              , infixLeft "," 3 Comma
-              ]
-          }
+        expressionParser $ parserConfig p allInfixParsers
     )
 
-allButComma :: Parser String Expression -> Parser String Expression
-allButComma p =
-  expressionParser
-    { prefix:
-        [ objectConstructorParser p
-        , arrayConstructorParser p
-        , accessorParser
-        , identityParser
-        , literalParser
-        ]
+parserConfig :: Parser String Expression -> (Array String) -> ParserConfig Expression
+parserConfig p infixToKeep =
+  let
+    allPrefix =
+      [ objectConstructorParser p
+      , arrayConstructorParser p
+      , accessorParser
+      , identityParser
+      , literalParser
+      ]
+
+    allInfix =
+      [ Tuple "pipe" $ infixLeft "|" 2 Pipe
+      , Tuple "comma" $ infixLeft "," 3 Comma
+      ]
+  in
+    { prefix: allPrefix
     , infixP:
-        [ infixLeft "|" 2 Pipe
-        ]
+        allInfix
+          # Array.filter (fst >>> flip elem infixToKeep)
+          # map snd
     }
 
+allInfixParsers :: Array String
+allInfixParsers =
+  [ "pipe"
+  , "comma"
+  ]
+
+objectValueParser :: Parser String Expression -> Parser String Expression
+objectValueParser p =
+  let
+    allInfixButComma = Array.delete "comma" allInfixParsers
+  -- When parsing object constructon, we need to 'disable' the comma parser while
+  -- parsing the right hand side of a `<key>: <value>` pair.
+  -- This is because otherwise given something like `"a": 42, "b": 33`, our parser would
+  -- yield think hit the comma operator, like `("a" - key) : (42 , "b" - value)` and then blow up.
+  in
+    expressionParser (parserConfig p allInfixButComma)
 
 literalParser :: Parser String Expression
 literalParser = do
@@ -82,24 +95,17 @@ arrayConstructorParser p = try emptyArray <|> try arrayWithItems
     pure $ ArrayConstructor (Just exp)
 
 objectConstructorParser :: Parser String Expression -> Parser String Expression
-objectConstructorParser p = do
-  try emptyObject <|> objectWithKeyValues
+objectConstructorParser p =
+  sepByCommas keyValueParser
+    # inCurlies
+    # map ObjectConstructor
   where
-  emptyObject = do
-    _ <- openCurly
-    _ <- closeCurly
-    pure (ObjectConstructor [])
-
-  objectWithKeyValues = do
-    keyValues <- inCurlies $ sepByCommas keyValueParser
-    pure $ ObjectConstructor (keyValues)
-
+  keyValueParser :: Parser String (KeyValuePair)
   keyValueParser = do
     key <- p
     _ <- colon
-    value <- allButComma p
+    value <- objectValueParser p
     pure $ Tuple key value
-
 
 accessorParser :: Parser String Expression
 accessorParser = do

@@ -4,7 +4,6 @@ module Json
   , atKey
   , buildArray
   , buildObject
-  , buildObject2
   , emptyArray
   , emptyObject
   , parser
@@ -16,8 +15,9 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (drop, many, (!!))
+import Data.Array (many)
 import Data.Array (fromFoldable, index) as Array
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
@@ -26,10 +26,9 @@ import Data.Map (fromFoldable, lookup, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
 import Data.String.CodeUnits (singleton)
-import Data.Traversable (sequence, traverse)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Debug (trace)
-import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (<*>), (/=), (<$>), (<>), (<<<), (>>>), (>>=))
+import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (<>), (>>>))
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
@@ -59,46 +58,21 @@ buildArray = JArray
 emptyArray :: Json
 emptyArray = buildArray []
 
-buildObject2 :: Array (Tuple Json Json)-> Maybe Json
-buildObject2 arr =
-  traverse convertKey arr
-  # map (Map.fromFoldable >>> JObject)
+buildObject :: Array (Tuple Json Json)-> Either String Json
+buildObject =
+  traverse keyToString >>> map buildObject_
   where
-    convertKey (Tuple key value)= case key of
-                        JString k -> Just $ Tuple k value
-                        _ -> Nothing
-  
+    keyToString (Tuple key value)=
+      case key of
+        JString k -> Right $ Tuple k value
+        notAString -> Left $ show notAString <> " cannot be an object key because it is not a string"
 
-
-buildObject :: Array Json -> Maybe Json
-buildObject arr =
-  chunk' arr >>= (\tups -> keyVals tups) >>= (Map.fromFoldable >>> JObject >>> Just)
-
-keyVals :: Array (Tuple Json Json) -> Maybe (Array (Tuple String Json))
-keyVals  arr = 
-  keyVals' arr # sequence
-
-keyVals' :: Array (Tuple Json Json) -> (Array (Maybe (Tuple String Json)))
-keyVals' =
-  map (\(Tuple key value) -> 
-          case key of
-            JString key' -> Just (Tuple key' value)
-            _ -> Nothing
-      )
-
-
-chunk' :: Array Json ->  Maybe (Array (Tuple Json Json))
-chunk' arr = sequence $ chunk arr
-    
-chunk :: Array Json ->  Array (Maybe (Tuple Json Json))
-chunk [] = []
-chunk [_] = [Nothing]
-chunk arr =
-  [(Tuple <$> arr !! 0 <*> arr !! 1)] <> chunk (drop 2 arr)
-
+buildObject_ :: Array (Tuple String Json) -> Json
+buildObject_ =
+  Map.fromFoldable >>> JObject
+ 
 emptyObject :: Json
-emptyObject = JObject (Map.fromFoldable [])
-
+emptyObject = buildObject_ []
 
 -- Read
 atKey :: String -> Json -> Maybe Json

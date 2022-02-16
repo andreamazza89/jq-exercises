@@ -10,7 +10,7 @@ import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Expression (Expression(..), Target(..), KeyValuePair)
 import Json (Json)
-import Json (atIndex, atKey, buildArray, buildObject2, emptyArray, emptyObject, values) as Json
+import Json (atIndex, atKey, buildArray, buildObject, emptyArray, emptyObject, values) as Json
 import Prelude (bind, pure, (#), ($), (<$>), (<*>), (<>), (>>=), (>>>))
 
 type Input
@@ -45,34 +45,38 @@ run (Comma l r) input = do
   pure $ lExp <> rExp
 
 run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
+run (ObjectConstructor keyValuePairs) input =
+  expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
 
-run (ObjectConstructor keyValuePairs) input = do
-  kvs <-
-    expandKeyValuePairs keyValuePairs input
-      # map sequence
-  maybe (Left "boom") pure (traverse Json.buildObject2 kvs)
-
--- stuff <- map Json.buildObject $ run expression input
--- maybe (Left "Fail to build json Object") (Array.singleton >>> pure) stuff
--- [(k, v), (k, v) ...]
--- expandKeyValuePairs
--- [ ([a], [2,3]), ([b,c], [42]) ...]
--- [ [(a,2), (a, 3)], [(b, 42), (c, 42)] ...]]
--- cartesian
--- [ [(a,2), (b, 42)], [(a, 3), (b, 42)], [(a,2), (c,42)]...]]
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =
-  traverse (expand >>> combine) arr
+  -- Would love to find a way to do this that's easier to grasp, but until then, here's an attempt at explaining:
+
+  -- we start with an array of expressions for all key-values, like so:
+  --    `[(K1exp, V1exp), (K2exp, V2exp), ...]`
+  -- in the expand phase, we run the interpreter for each expression (using symbols to represent json)
+  --    `[([*, ~], [$]), ([^], [&, #]), ...]`
+  -- in combineSingleKeyValues, for each pair make all combinations of keys and values:
+  --    `[[(*, $), (~, $)], [(^, &), (^, #)], ...]`
+  -- and finally we make all possible combinations for all the sets of keyValues:
+  --    `[[(*, $), (^, &)], [(*, $), (^, #)], [(~, $), (^, &)], [(~, $), (^, #)] ...]`
+  traverse (expand >>> combineSingleKeyValues) arr
+    # map combineMultipleKeyValues
   where
-    expand (Tuple keyExp valExp) =
-      Tuple <$> run keyExp input <*> run valExp input
-    combine =
-      map
-        (\(Tuple keys values) -> do
-            k <- keys
-            v <- values
-            pure $ Tuple k v
-        )
+  expand (Tuple keyExp valExp) =
+    Tuple
+      <$> run keyExp input
+      <*> run valExp input
+
+  combineSingleKeyValues =
+    map
+      ( \(Tuple keys values) -> do
+          k <- keys
+          v <- values
+          pure $ Tuple k v
+      )
+
+  combineMultipleKeyValues = sequence
 
 accessor :: Maybe (Array Json) -> Target -> Maybe (Array Json)
 accessor acc (Key k) = acc >>= traverse (Json.atKey k)
