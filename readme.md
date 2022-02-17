@@ -45,8 +45,6 @@ JSON -> Expression -> JSON
 ---
 ## Questions
 
-- (reword to explain/think better): question about the `:` hack in parsing an object builder. It moves a compile-time error to a runtime one, but that feels fine, as it
-  makes parsing object constructors painless?
 - What's backtracking in jq and what implications does it have for me? Can I just ignore to start with?
 - The documentation describes the language as having _second-class higher-order functions of dynamic extent_ - what does
   this mean?
