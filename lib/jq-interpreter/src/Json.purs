@@ -117,13 +117,13 @@ nullParser =
 stringParser :: Parser String Json
 stringParser =
   quoted (many (satisfy ((/=) '"')))
-    # map (charsToString >>> JString)
+    # map (chrsToString >>> JString)
     # spaced
 
 numberParser :: Parser String Json
 numberParser =
   many1 (try digit <|> try dash <|> try dot)
-    # map (charsToString >>> Number.fromString)
+    # map (chrsToString >>> Number.fromString)
     # required
     # spaced
     # map JNumber
@@ -152,12 +152,12 @@ objectParser p = do
   where
     keyValueParser :: Parser String (Tuple String Json)
     keyValueParser = do
-      key <- charsToString <$> quoted (many (satisfy ((/=) '"')))
+      key <- chrsToString <$> quoted (many (satisfy ((/=) '"')))
       _ <- spaced $ (char ':')
       value <- p
       pure $ Tuple key value
   
 
 -- Helpers
-charsToString :: forall f. Foldable f => f Char -> String
-charsToString = Foldable.foldMap singleton
+chrsToString :: forall f. Foldable f => f Char -> String
+chrsToString = Foldable.foldMap singleton
