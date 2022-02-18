@@ -21,17 +21,19 @@ import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (ParseError, Parser, runParser)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
-import Text.Parsing.Parser.String (satisfy)
+import Text.Parsing.Parser.String (eof, satisfy)
 
 parse :: String -> Either ParseError Expression
 parse input = runParser input parser
 
 parser :: Parser String Expression
-parser =
-  fix
+parser = do
+  exp <- fix
     ( \p ->
         expressionParser $ parserConfig p allInfixParsers
     )
+  _ <- eof
+  pure exp
 
 parserConfig :: Parser String Expression -> (Array String) -> ParserConfig Expression
 parserConfig p infixToKeep =

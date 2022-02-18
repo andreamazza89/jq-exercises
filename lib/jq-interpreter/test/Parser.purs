@@ -9,9 +9,9 @@ import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression)
 import Parser (parse)
-import Prelude (Unit, ($), discard)
+import Prelude (Unit, ($), discard, pure, unit)
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Assertions (fail, shouldEqual)
 
 main :: Spec Unit
 main = do
@@ -79,6 +79,14 @@ main = do
         testParser ". | 42 , ." $ identity || ((literal (num 42.0)) ~ identity)
       it "parentheses override precedence" do
         testParser "(. | 42) , ." $ (identity || (literal (num 42.0))) ~ identity
+    describe "Miscellaneous" do
+      it "spurious character after a valid expression are not allowed" do
+        testFailure ". | . ~~~~~~~~"
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
 testParser source expected = parse source `shouldEqual` Right expected
+
+testFailure :: forall a. MonadThrow Error a => String -> a Unit
+testFailure expression = case parse expression of
+  Left _ -> pure unit
+  Right _ -> fail "The parser should have failed."

@@ -2,7 +2,6 @@ module App.Pages.Home where
 
 import Prelude
 
-import Data.Functor (map)
 import Data.Maybe (maybe)
 import JQ as JQ
 import React.Basic.DOM as DOM
