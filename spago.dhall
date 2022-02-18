@@ -2,6 +2,7 @@
 , dependencies =
   [ "effect"
   , "exceptions"
+  , "jq-interpreter"
   , "maybe"
   , "prelude"
   , "react-basic-dom"

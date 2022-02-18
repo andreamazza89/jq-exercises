@@ -1,4 +1,4 @@
-{ name = "jq-exercises"
+{ name = "jq-interpreter"
 , dependencies =
   [ "aff"
   , "arrays"

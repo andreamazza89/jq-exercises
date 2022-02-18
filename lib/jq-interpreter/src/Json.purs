@@ -6,7 +6,9 @@ module Json
   , buildObject
   , emptyArray
   , emptyObject
+  , parse
   , parser
+  , serialise
   , values
   )
   where
@@ -15,8 +17,8 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (many)
 import Data.Array (fromFoldable, index) as Array
+import Data.Array (many)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
@@ -29,7 +31,7 @@ import Data.String.CodeUnits (singleton)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (<>), (>>>))
-import Text.Parsing.Parser (Parser)
+import Text.Parsing.Parser (ParseError(..), Parser, runParser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
 
@@ -97,6 +99,10 @@ values (JObject object) = Just (Map.values object # Array.fromFoldable)
 values _ = Nothing
 
 -- Parse
+parse :: String -> Either ParseError Json
+parse raw =
+  runParser raw parser
+
 parser :: Parser String Json
 parser =
   fix (\p ->
@@ -157,6 +163,14 @@ objectParser p = do
       value <- p
       pure $ Tuple key value
   
+-- To String
+serialise :: Json -> String
+serialise JNull = "null"
+serialise (JString s) = s
+serialise (JNumber n) = show n
+serialise (JBoolean b) = show b
+serialise (JArray a) = show a
+serialise (JObject o) = show o
 
 -- Helpers
 chrsToString :: forall f. Foldable f => f Char -> String
