@@ -12,3 +12,6 @@
 /.idea/*
 
 settings.json
+
+/.parcel-cache
+/dist/
