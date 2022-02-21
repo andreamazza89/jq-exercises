@@ -1,12 +1,14 @@
 { name = "jq-exercises"
 , dependencies =
-  [ "effect"
+  [ "arrays"
+  , "effect"
   , "exceptions"
   , "jq-interpreter"
   , "maybe"
   , "prelude"
   , "react-basic-dom"
   , "react-basic-hooks"
+  , "strings"
   , "web-dom"
   , "web-html"
   ]

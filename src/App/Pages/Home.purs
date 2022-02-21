@@ -5,18 +5,17 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import Data.Array (concat) as Array
-import Data.String as String
+import Data.Array (concat, zip, all, sort) as Array
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Traversable (traverse)
+import Data.String as String
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import JQ as JQ
 import React.Basic.DOM as DOM
 import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Hooks (Component, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
-
-type HomeProps
-  = Unit
 
 type State
   = { jsonInput :: String
@@ -41,7 +40,7 @@ reducerFn =
         ExpressionInputUpdated newInput -> s { expressionInput = newInput }
     )
 
-mkHome :: Component HomeProps
+mkHome :: Component Unit
 mkHome = do
   reducer <- reducerFn
   component "Home" \_ -> React.do
@@ -112,7 +111,7 @@ mkExercise = do
       $ DOM.div
           { children:
               [ DOM.h1_ [ DOM.text "Exercise" ]
-              , DOM.p_ [ (DOM.text "the exercise description goes here")] -- would be nice to have something like markdown. Maybe there's a webcomponent like that?") ]
+              , DOM.p_ [ (DOM.text "the exercise description goes here") ]
               , DOM.textarea { value: exercise.json, disabled: true }
               , DOM.textarea
                   { value: state.exerciseInput
@@ -126,17 +125,29 @@ outcome exercise state = case toViewExercise exercise state of
   NotStarted -> DOM.p_ [ DOM.text "" ] -- is there a null-equivalent for JSX?
   FailedToRun reason -> DOM.p_ [ DOM.text ("Could not run: " <> reason) ]
   Failed given expected -> DOM.p_ [ DOM.text ("Expected output: " <> String.joinWith " " expected <> ". Your solution gives: " <> String.joinWith " " given) ]
-  Success output -> DOM.p_ [ DOM.text ("yayy") ]
+  Success output -> DOM.div_ $ map (\json -> DOM.div {children: [DOM.p_ [DOM.text json]]}) output
 
 toViewExercise exercise state =
   if (state.exerciseInput == "") then
     NotStarted
   else case JQ.run exercise.json state.exerciseInput of
     Just output -> checkSolution output
-    Nothing -> FailedToRun "something did not parser or the interpreter failed"
+    Nothing -> FailedToRun "something did not parse or the interpreter failed"
   where
   checkSolution output =
-    if output == exercise.solution then
-      Success output
-    else
-      Failed output exercise.solution
+    -- because JQ's output is an array of json values, here we
+    --   first zip together the given/expected outputs,
+    --   compare each pair's JSON
+    --   succeed if all pairs match
+    Array.zip (Array.sort output) (Array.sort exercise.solution)
+      # traverse compareJsonStrings
+      # maybe
+          (Failed output exercise.solution)
+          ( \comparisons ->
+              if Array.all (identity) comparisons then
+                Success output
+              else
+                Failed output exercise.solution
+          )
+
+  compareJsonStrings (Tuple l r) = JQ.jsonEquals l r
