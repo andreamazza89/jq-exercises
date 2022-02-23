@@ -2,6 +2,7 @@
 , dependencies =
   [ "arrays"
   , "effect"
+  , "either"
   , "exceptions"
   , "foldable-traversable"
   , "jq-interpreter"

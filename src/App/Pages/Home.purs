@@ -2,12 +2,10 @@ module App.Pages.Home
   ( mkExercise
   , mkHome
   , sampleExercise
-  )
-  where
+  ) where
 
 import Prelude
-
-import Data.Array (concat, zip, all, sort) as Array
+import Data.Array (concat, zip, all, length, sort) as Array
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String as String
@@ -127,26 +125,48 @@ mkExercise = do
 
 outcome exercise state = case toViewExercise exercise state of
   NotStarted -> mempty
-  FailedToRun reason -> DOM.p {children: [ DOM.text ("Could not run: " <> reason) ], style: (css { color: "red"}) }
+  FailedToRun reason ->
+    DOM.div
+      { className: "container"
+      , children:
+          [ errorMessage "Could not parse expression"
+          , DOM.p_ [ DOM.text reason ]
+          ]
+      }
   Failed given expected ->
     DOM.div
-      { children:
-          [ givenJson given
-          , givenJson expected
+      { className: "container"
+      , children:
+          [ errorMessage "Not quite, try again"
+          , DOM.section
+              { children:
+                  [ showJson "Output from your Expression" given
+                  , showJson "Expected Output" expected
+                  ]
+              , className: "grid"
+              }
           ]
-      , className: "grid"
       }
-  Success output -> DOM.div_ $ map (\json -> DOM.div { children: [ DOM.p_ [ DOM.text json ] ] }) output
+  Success output ->
+    DOM.div_
+      [ successMessage "Success!"
+      , showJson "Output" output
+      ]
 
-givenJson given =
-  DOM.div {
-    children: [
-      DOM.p_ [ DOM.text "Your JSON: "]
-      , DOM.ul_  $ map (\j -> DOM.li_ [DOM.text j]) given
-       
-    ] 
-  }
-  
+errorMessage = textWithColor "#fd5050"
+
+successMessage = textWithColor "#21c782"
+
+textWithColor color text = DOM.h4 { children: [ DOM.text text ], style: (css { color }) }
+
+showJson label json =
+  DOM.div
+    { className: "container"
+    , children:
+        [ DOM.header_ [ DOM.text (label <> ":") ]
+        , DOM.ul_ $ map (\j -> DOM.li_ [ DOM.text j ]) json
+        ]
+    }
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
 toViewExercise exercise state =
@@ -166,7 +186,7 @@ toViewExercise exercise state =
       # maybe
           (Failed output exercise.solution)
           ( \comparisons ->
-              if Array.all (identity) comparisons then
+              if Array.length exercise.solution == Array.length output && Array.all identity comparisons then
                 Success output
               else
                 Failed output exercise.solution
