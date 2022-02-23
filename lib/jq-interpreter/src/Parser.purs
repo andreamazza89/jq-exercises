@@ -11,6 +11,7 @@ import Data.Array (elem)
 import Data.Array as Array
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.CodePoint.Unicode (isAlphaNum)
+import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Functor (map)
 import Data.Maybe (Maybe(..))
@@ -19,12 +20,13 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
-import Text.Parsing.Parser (ParseError, Parser, runParser)
+import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (eof, satisfy)
 
-parse :: String -> Either ParseError Expression
+parse :: String -> Either String Expression
 parse input = runParser input parser
+  # lmap parseErrorMessage
 
 parser :: Parser String Expression
 parser = do

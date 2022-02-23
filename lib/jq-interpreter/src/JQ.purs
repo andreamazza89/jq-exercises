@@ -1,20 +1,20 @@
 module JQ where
 
-import Prelude (bind, ($), (#), (<$>), (<*>), (==))
-import Data.Either (hush)
+import Data.Either (Either, hush)
 import Data.Functor (map)
 import Data.Maybe (Maybe, fromMaybe)
-import Json (parse, serialise) as Json
 import Interpreter (run) as Interpreter
+import Json (parse, serialise) as Json
 import Parser (parse) as Parser
+import Prelude (bind, ($), (#), (<$>), (<*>), (==))
 
-run :: String -> String -> Maybe (Array String)
+run :: String -> String -> Either String (Array String)
 run json jq = do
-  input <- hush $ Json.parse json
-  exp <- hush $ Parser.parse jq
+  input <- Json.parse json
+  exp <- Parser.parse jq
+
   Interpreter.run exp [ input ]
     # map (map Json.serialise)
-    # hush
 
 jsonEquals :: String -> String -> Maybe Boolean
 jsonEquals left right =

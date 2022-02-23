@@ -19,6 +19,7 @@ import Control.Alternative ((<|>))
 import Control.Lazy (fix)
 import Data.Array (fromFoldable, index) as Array
 import Data.Array (many)
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
@@ -31,7 +32,7 @@ import Data.String.CodeUnits (singleton)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (<>), (>>>))
-import Text.Parsing.Parser (ParseError(..), Parser, runParser)
+import Text.Parsing.Parser (ParseError(..), Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
 
@@ -99,9 +100,10 @@ values (JObject object) = Just (Map.values object # Array.fromFoldable)
 values _ = Nothing
 
 -- Parse
-parse :: String -> Either ParseError Json
+parse :: String -> Either String Json
 parse raw =
   runParser raw parser
+    # lmap parseErrorMessage
 
 parser :: Parser String Json
 parser =

@@ -6,13 +6,16 @@ module App.Pages.Home
   where
 
 import Prelude
+
 import Data.Array (concat, zip, all, sort) as Array
+import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Traversable (traverse)
 import Data.String as String
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import JQ as JQ
+import React.Basic.DOM (css)
 import React.Basic.DOM as DOM
 import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Hooks (Component, Reducer, component, mkReducer, useReducer, (/\))
@@ -59,7 +62,7 @@ mkHome = do
                   , onChange: inputChanged dispatch ExpressionInputUpdated
                   }
               , DOM.p_
-                  ( maybe ([ DOM.text "no result yet" ])
+                  ( either (\reason -> [ DOM.text $ "woops: " <> reason ])
                       (map DOM.text)
                       (JQ.run state'.jsonInput state'.expressionInput)
                   )
@@ -124,7 +127,7 @@ mkExercise = do
 
 outcome exercise state = case toViewExercise exercise state of
   NotStarted -> mempty
-  FailedToRun reason -> DOM.p_ [ DOM.text ("Could not run: " <> reason) ]
+  FailedToRun reason -> DOM.p {children: [ DOM.text ("Could not run: " <> reason) ], style: (css { color: "red"}) }
   Failed given expected ->
     DOM.div
       { children:
@@ -150,8 +153,8 @@ toViewExercise exercise state =
   if (state.exerciseInput == "") then
     NotStarted
   else case JQ.run exercise.json state.exerciseInput of
-    Just output -> checkSolution output
-    Nothing -> FailedToRun "something did not parse or the interpreter failed"
+    Right output -> checkSolution output
+    Left reason -> FailedToRun $ "Something went wrong: " <> reason
   where
   checkSolution output =
     -- because JQ's output is an array of json strings, here we
