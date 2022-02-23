@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import App.Pages.Home (mkExercise, mkHome, sampleExercise)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)

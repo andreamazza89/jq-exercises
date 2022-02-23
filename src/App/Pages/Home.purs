@@ -2,7 +2,8 @@ module App.Pages.Home
   ( mkExercise
   , mkHome
   , sampleExercise
-  ) where
+  )
+  where
 
 import Prelude
 import Data.Array (concat, zip, all, sort) as Array
@@ -70,8 +71,8 @@ inputChanged dispatch buildAction = capture targetValue (fromMaybe "does this ev
 -- Exercise Component
 sampleExercise :: Exercise
 sampleExercise =
-  { json: "{\"foo\": [42]}"
-  , solution: [ "42.0" ]
+  { json: "{\"foo\": [42, 43]}"
+  , solution: [ "42.0", "43.0" ]
   }
 
 type Exercise
@@ -108,7 +109,7 @@ mkExercise = do
   component "Exercise" \exercise -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
     pure
-      $ DOM.div
+      $ DOM.section
           { children:
               [ DOM.h1_ [ DOM.text "Exercise" ]
               , DOM.p_ [ (DOM.text "the exercise description goes here") ]
@@ -122,11 +123,29 @@ mkExercise = do
           }
 
 outcome exercise state = case toViewExercise exercise state of
-  NotStarted -> DOM.p_ [ DOM.text "" ] -- is there a null-equivalent for JSX?
+  NotStarted -> mempty
   FailedToRun reason -> DOM.p_ [ DOM.text ("Could not run: " <> reason) ]
-  Failed given expected -> DOM.p_ [ DOM.text ("Expected output: " <> String.joinWith " " expected <> ". Your solution gives: " <> String.joinWith " " given) ]
-  Success output -> DOM.div_ $ map (\json -> DOM.div {children: [DOM.p_ [DOM.text json]]}) output
+  Failed given expected ->
+    DOM.div
+      { children:
+          [ givenJson given
+          , givenJson expected
+          ]
+      , className: "grid"
+      }
+  Success output -> DOM.div_ $ map (\json -> DOM.div { children: [ DOM.p_ [ DOM.text json ] ] }) output
 
+givenJson given =
+  DOM.div {
+    children: [
+      DOM.p_ [ DOM.text "Your JSON: "]
+      , DOM.ul_  $ map (\j -> DOM.li_ [DOM.text j]) given
+       
+    ] 
+  }
+  
+
+toViewExercise :: Exercise -> ExerciseState -> ViewExercise
 toViewExercise exercise state =
   if (state.exerciseInput == "") then
     NotStarted
@@ -135,7 +154,7 @@ toViewExercise exercise state =
     Nothing -> FailedToRun "something did not parse or the interpreter failed"
   where
   checkSolution output =
-    -- because JQ's output is an array of json values, here we
+    -- because JQ's output is an array of json strings, here we
     --   first zip together the given/expected outputs,
     --   compare each pair's JSON
     --   succeed if all pairs match
