@@ -8,9 +8,9 @@
   , "jq-interpreter"
   , "maybe"
   , "prelude"
+  , "react-basic"
   , "react-basic-dom"
   , "react-basic-hooks"
-  , "strings"
   , "tuples"
   , "web-html"
   ]

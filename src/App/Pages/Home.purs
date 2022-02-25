@@ -1,9 +1,11 @@
 module App.Pages.Home
-  ( mkExercise
+  ( mkApp
+  , mkExercise
   , mkHome
-  , sampleExercise
   ) where
 
+import App.Exercises (Exercise)
+import App.Exercises as Exercises
 import Prelude
 import Data.Array (all, length, zip) as Array
 import Data.Either (Either(..), either)
@@ -14,10 +16,63 @@ import Effect (Effect)
 import JQ as JQ
 import React.Basic.DOM (css)
 import React.Basic.DOM as DOM
-import React.Basic.DOM.Events (capture, targetValue)
-import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
+import React.Basic.DOM.Events (capture_, capture, targetValue)
+import React.Basic.Events (EventHandler)
+import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, useState, (/\))
 import React.Basic.Hooks as React
 
+-- 
+data AppState
+  = Home
+  | Exercise Exercise
+  | AllExercises
+
+mkApp :: Component Unit
+mkApp = do
+  home <- mkHome
+  exercise <- mkExercise
+  allExercises <- mkAllExercises
+  component "App" \_ -> React.do
+    state /\ updateState <- useState Home
+    let
+      navigation =
+        { exercise: \ex -> capture_ $ updateState (const $ Exercise ex)
+        , allExercises: capture_ $ updateState (const AllExercises)
+        , home: capture_ $ updateState (const Home)
+        }
+    pure
+      $ case state of
+          Home -> home navigation
+          Exercise ex -> exercise ex
+          AllExercises -> allExercises navigation
+
+type Navigation
+  = { exercise :: Exercise -> EventHandler
+    , allExercises :: EventHandler
+    , home :: EventHandler
+    }
+
+--
+mkAllExercises :: Component Navigation
+mkAllExercises = do
+  component "AllExercises" \nav -> React.do
+    pure
+      $ DOM.div
+          { className: "container"
+          , children:
+              [ DOM.h1_ [ DOM.text "Here's a list of all the exercises available:" ] ]
+                <> ( map
+                      ( \ex ->
+                          DOM.a
+                            { children: [ DOM.text ex.name ]
+                            , onClick: nav.exercise ex
+                            }
+                      )
+                      Exercises.all
+                  )
+          }
+
+--
 type HomeState
   = { jsonInput :: String
     , expressionInput :: String
@@ -41,16 +96,24 @@ reducerFn =
         ExpressionInputUpdated newInput -> s { expressionInput = newInput }
     )
 
-mkHome :: Component Unit
+mkHome :: Component Navigation
 mkHome = do
   reducer <- reducerFn
-  component "Home" \_ -> React.do
+  component "Home" \nav -> React.do
     state /\ dispatch <- useReducer initialState reducer
     pure
       $ DOM.div
           { className: "container"
           , children:
               [ DOM.h1_ [ DOM.text "Jq - exercises" ]
+              , DOM.a
+                  { children: [ DOM.text "Go to the first exercise" ]
+                  , onClick: nav.exercise (Exercises.first)
+                  }
+              , DOM.a
+                  { children: [ DOM.text "View all exercises available" ]
+                  , onClick: nav.allExercises
+                  }
               , DOM.textarea
                   { value: state.jsonInput
                   , onChange: inputChanged dispatch JsonInputUpdated
@@ -70,17 +133,6 @@ mkHome = do
 inputChanged dispatch buildAction = capture targetValue (fromMaybe "does this ever happen?" >>> buildAction >>> dispatch)
 
 -- Exercise Component
-sampleExercise :: Exercise
-sampleExercise =
-  { json: "{\"foo\": [42, 43]}"
-  , solution: [ "42.0", "43.0" ]
-  }
-
-type Exercise
-  = { json :: String
-    , solution :: Array String
-    }
-
 type ExerciseState
   = { exerciseInput :: String
     }
