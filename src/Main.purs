@@ -21,4 +21,4 @@ main = do
     Just body' -> do
       home <- mkHome
       exercise <- mkExercise
-      render (exercise sampleExercise) (toElement body')
+      render (home unit) (toElement body')

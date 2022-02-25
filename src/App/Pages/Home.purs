@@ -5,11 +5,9 @@ module App.Pages.Home
   ) where
 
 import Prelude
-
-import Data.Array (concat, zip, all, length, sort) as Array
+import Data.Array (all, length, zip) as Array
 import Data.Either (Either(..), either)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.String as String
+import Data.Maybe (fromMaybe, maybe)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -20,7 +18,7 @@ import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
 
-type State
+type HomeState
   = { jsonInput :: String
     , expressionInput :: String
     }
@@ -29,13 +27,13 @@ data Action
   = JsonInputUpdated String
   | ExpressionInputUpdated String
 
-initialState :: State
+initialState :: HomeState
 initialState =
   { jsonInput: "{\"foo\": 42}"
   , expressionInput: ".foo"
   }
 
-reducerFn :: Effect (Reducer State Action)
+reducerFn :: Effect (Reducer HomeState Action)
 reducerFn =
   mkReducer
     ( \s action -> case action of
@@ -47,23 +45,24 @@ mkHome :: Component Unit
 mkHome = do
   reducer <- reducerFn
   component "Home" \_ -> React.do
-    state' /\ dispatch <- useReducer initialState reducer
+    state /\ dispatch <- useReducer initialState reducer
     pure
       $ DOM.div
-          { children:
+          { className: "container"
+          , children:
               [ DOM.h1_ [ DOM.text "Jq - exercises" ]
               , DOM.textarea
-                  { value: state'.jsonInput
+                  { value: state.jsonInput
                   , onChange: inputChanged dispatch JsonInputUpdated
                   }
               , DOM.textarea
-                  { value: state'.expressionInput
+                  { value: state.expressionInput
                   , onChange: inputChanged dispatch ExpressionInputUpdated
                   }
-              , DOM.p_
-                  ( either (\reason -> [ DOM.text $ "woops: " <> reason ])
-                      (map DOM.text)
-                      (JQ.run state'.jsonInput state'.expressionInput)
+              , DOM.div_
+                  ( either (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
+                      (\output -> [ showJson "Output from your Expression" output ])
+                      (JQ.run state.jsonInput state.expressionInput)
                   )
               ]
           }
@@ -112,13 +111,15 @@ mkExercise = do
     state /\ dispatch <- useReducer initialExerciseState reducer
     pure
       $ DOM.section
-          { children:
+          { className: "container"
+          , children:
               [ DOM.h1_ [ DOM.text "Exercise" ]
               , DOM.p_ [ (DOM.text "the exercise description goes here") ]
               , DOM.textarea { value: exercise.json, disabled: true }
               , DOM.textarea
                   { value: state.exerciseInput
                   , onChange: inputChanged dispatch ExerciseInputUpdated
+                  , placeholder: "Your JQ code goes here"
                   }
               , outcome exercise state
               ]
@@ -128,31 +129,25 @@ outcome :: Exercise -> ExerciseState -> JSX
 outcome exercise state = case toViewExercise exercise state of
   NotStarted -> mempty
   FailedToRun reason ->
-    DOM.div
-      { className: "container"
-      , children:
-          [ errorMessage "Could not parse or run expression"
-          , DOM.p_ [ DOM.text reason ]
-          ]
-      }
+    DOM.div_
+      [ errorMessage "Could not parse or run expression"
+      , DOM.p_ [ DOM.text reason ]
+      ]
   Failed given expected ->
-    DOM.div
-      { className: "container"
-      , children:
-          [ errorMessage "Not quite, try again"
-          , DOM.section
-              { children:
-                  [ showJson "Output from your Expression" given
-                  , showJson "Expected Output" expected
-                  ]
-              , className: "grid"
-              }
-          ]
-      }
+    DOM.div_
+      [ errorMessage "Not quite, try again"
+      , DOM.div
+          { children:
+              [ showJson "Output from your Expression" given
+              , showJson "Expected Output" expected
+              ]
+          , className: "grid"
+          }
+      ]
   Success output ->
     DOM.div_
       [ successMessage "Success!"
-      , showJson "Output" output
+      , showJson "Output from your Expression" output
       ]
 
 errorMessage :: String -> JSX
@@ -166,13 +161,10 @@ textWithColor color text = DOM.h4 { children: [ DOM.text text ], style: (css { c
 
 showJson :: String -> Array String -> JSX
 showJson label json =
-  DOM.div
-    { className: "container"
-    , children:
-        [ DOM.header_ [ DOM.text (label <> ":") ]
-        , DOM.ul_ $ map (\j -> DOM.li_ [ DOM.text j ]) json
-        ]
-    }
+  DOM.article_
+    [ DOM.header_ [ DOM.text (label <> ":") ]
+    , DOM.ul_ $ map (\j -> DOM.li_ [ DOM.text j ]) json
+    ]
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
 toViewExercise exercise state =
@@ -187,7 +179,7 @@ toViewExercise exercise state =
     --   first zip together the given/expected outputs,
     --   compare each pair's JSON
     --   succeed if all pairs match
-    Array.zip (Array.sort output) (Array.sort exercise.solution)
+    Array.zip output exercise.solution
       # traverse compareJsonStrings
       # maybe
           (Failed output exercise.solution)
