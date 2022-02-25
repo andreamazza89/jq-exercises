@@ -2,7 +2,7 @@ module Main where
 
 import Prelude
 
-import App.Pages.Home (mkApp)
+import App (mkApp)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Exception (throw)
