@@ -5,6 +5,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
+
 import Data.Array (concat, zip, all, length, sort) as Array
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -16,7 +17,7 @@ import JQ as JQ
 import React.Basic.DOM (css)
 import React.Basic.DOM as DOM
 import React.Basic.DOM.Events (capture, targetValue)
-import React.Basic.Hooks (Component, Reducer, component, mkReducer, useReducer, (/\))
+import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
 
 type State
@@ -123,13 +124,14 @@ mkExercise = do
               ]
           }
 
+outcome :: Exercise -> ExerciseState -> JSX
 outcome exercise state = case toViewExercise exercise state of
   NotStarted -> mempty
   FailedToRun reason ->
     DOM.div
       { className: "container"
       , children:
-          [ errorMessage "Could not parse expression"
+          [ errorMessage "Could not parse or run expression"
           , DOM.p_ [ DOM.text reason ]
           ]
       }
@@ -153,12 +155,16 @@ outcome exercise state = case toViewExercise exercise state of
       , showJson "Output" output
       ]
 
+errorMessage :: String -> JSX
 errorMessage = textWithColor "#fd5050"
 
+successMessage :: String -> JSX
 successMessage = textWithColor "#21c782"
 
+textWithColor :: String -> String -> JSX
 textWithColor color text = DOM.h4 { children: [ DOM.text text ], style: (css { color }) }
 
+showJson :: String -> Array String -> JSX
 showJson label json =
   DOM.div
     { className: "container"
