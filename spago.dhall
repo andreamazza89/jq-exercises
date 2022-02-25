@@ -12,7 +12,6 @@
   , "react-basic-hooks"
   , "strings"
   , "tuples"
-  , "web-dom"
   , "web-html"
   ]
 , packages = ./packages.dhall

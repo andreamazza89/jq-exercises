@@ -1,22 +1,24 @@
 module Main where
 
 import Prelude
+
 import App.Pages.Home (mkExercise, mkHome, sampleExercise)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Exception (throw)
 import React.Basic.DOM (render)
-import Web.DOM.NonElementParentNode (getElementById)
 import Web.HTML (window)
-import Web.HTML.HTMLDocument (toNonElementParentNode)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 main :: Effect Unit
 main = do
-  root <- getElementById "root" =<< (map toNonElementParentNode $ document =<< window)
-  case root of
-    Nothing -> throw "Root element not found."
-    Just r -> do
+  body <- body =<< document =<< window
+
+  case body of
+    Nothing -> throw "Body not found."
+    Just body' -> do
       home <- mkHome
       exercise <- mkExercise
-      render (exercise sampleExercise) r
+      render (exercise sampleExercise) (toElement body')
