@@ -17,7 +17,7 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (fromFoldable, index) as Array
+import Data.Array (fromFoldable, index, zip) as Array
 import Data.Array (many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
@@ -25,14 +25,15 @@ import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Functor (map)
 import Data.Map (Map)
-import Data.Map (fromFoldable, lookup, values) as Map
+import Data.Map (fromFoldable, lookup, keys, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
+import Data.String as String
 import Data.String.CodeUnits (singleton)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, bind, pure, show, (#), ($), (*>), (/=), (<$>), (<<<), (<>), (>>>))
-import Text.Parsing.Parser (ParseError(..), Parser, parseErrorMessage, runParser)
+import Text.Parsing.Parser (Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
 
@@ -171,8 +172,16 @@ serialise JNull = "null"
 serialise (JString s) = s
 serialise (JNumber n) = show n
 serialise (JBoolean b) = show b
-serialise (JArray a) = show a
-serialise (JObject o) = show o
+serialise (JArray a) = "[ " <>  (String.joinWith ", " (map serialise a)) <> " ]"
+serialise (JObject o) = "{ " <> (String.joinWith ", " (map (\(Tuple k v) -> k <> ": " <> serialise v) (toTupleArray o))) <> " }"
+
+toTupleArray :: forall a b. Map a b -> Array (Tuple a b)
+toTupleArray map =
+  let
+    ks = Array.fromFoldable $ Map.keys map
+    vs = Array.fromFoldable $ Map.values map
+  in
+  Array.zip ks vs
 
 -- Helpers
 chrsToString :: forall f. Foldable f => f Char -> String
