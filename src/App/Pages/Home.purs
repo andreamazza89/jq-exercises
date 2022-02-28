@@ -3,7 +3,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import App.DomUtils (errorMessage, h1, inputChanged, showJson)
+import App.DomUtils (errorMessage, inputChanged, showJson)
 import App.Exercises as Exercises
 import Data.Either (either)
 import Effect (Effect)
@@ -45,8 +45,7 @@ mkHome = do
       $ DOM.div
           { className: "container"
           , children:
-              [ h1 "Jq - exercises"
-              , DOM.a
+              [ DOM.a
                   { children: [ DOM.text "Go to the first exercise" ]
                   , onClick: nav.exercise (Exercises.first)
                   }

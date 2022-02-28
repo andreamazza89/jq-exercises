@@ -1,8 +1,7 @@
 module App.Pages.AllExercises where
 
 import Prelude
-
-import App.DomUtils (h1)
+import App.DomUtils (h2)
 import App.Exercises (Exercise)
 import App.Exercises as Exercises
 import Navigation (Navigation)
@@ -16,7 +15,7 @@ mkAllExercises = do
       $ DOM.div
           { className: "container"
           , children:
-              [ h1 "Here's a list of all the exercises available:" ]
+              [ h2 "Here's a list of all the exercises available:" ]
                 <> (map (toLink nav) Exercises.all)
           }
 

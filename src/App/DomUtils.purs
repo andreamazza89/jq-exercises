@@ -1,5 +1,5 @@
 module App.DomUtils
-  ( h1
+  ( h2
   , errorMessage
   , inputChanged
   , showJson
@@ -18,8 +18,8 @@ import React.Basic.Hooks (JSX)
 inputChanged :: forall action. (action -> Effect Unit) -> (String -> action) -> EventHandler
 inputChanged dispatch buildAction = capture targetValue (fromMaybe "does this ever happen?" >>> buildAction >>> dispatch)
 
-h1 :: String -> JSX
-h1 content = DOM.h1_ [ DOM.text content ]
+h2 :: String -> JSX
+h2 content = DOM.h2_ [ DOM.text content ]
 
 errorMessage :: String -> JSX
 errorMessage = textWithColor "#fd5050"

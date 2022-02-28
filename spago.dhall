@@ -13,6 +13,7 @@
   , "react-basic-hooks"
   , "tuples"
   , "unsafe-coerce"
+  , "web-dom"
   , "web-html"
   ]
 , packages = ./packages.dhall

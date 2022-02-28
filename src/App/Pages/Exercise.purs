@@ -1,6 +1,6 @@
 module App.Pages.Exercise (mkExercise) where
 
-import App.DomUtils (errorMessage, h1, inputChanged, showJson, successMessage)
+import App.DomUtils (errorMessage, h2, inputChanged, showJson, successMessage)
 import Prelude
 import App.Exercises (Exercise)
 import Data.Array (all, length, zip) as Array
@@ -47,7 +47,7 @@ mkExercise = do
       $ DOM.section
           { className: "container"
           , children:
-              [ h1 exercise.name
+              [ h2 exercise.name
               , Markdown.build exercise.description
               , DOM.textarea { value: exercise.json, disabled: true }
               , DOM.textarea
