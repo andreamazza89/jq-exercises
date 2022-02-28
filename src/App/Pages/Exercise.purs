@@ -10,6 +10,7 @@ import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import JQ as JQ
+import WebComponents.Markdown as Markdown
 import React.Basic.DOM as DOM
 import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
@@ -47,7 +48,7 @@ mkExercise = do
           { className: "container"
           , children:
               [ h1 exercise.name
-              , DOM.p_ [ (DOM.text "the exercise description goes here") ]
+              , Markdown.build exercise.description
               , DOM.textarea { value: exercise.json, disabled: true }
               , DOM.textarea
                   { value: state.exerciseInput

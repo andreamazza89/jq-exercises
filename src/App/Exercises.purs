@@ -6,6 +6,7 @@ module App.Exercises
 
 type Exercise
   = { name :: String
+    , description :: String
     , json :: String
     , solution :: Array String
     }
@@ -16,6 +17,9 @@ all = [ first ]
 first :: Exercise
 first =
   { name: "Sample exercise"
+  , description: """
+  You *can* **definitely** use Markdown `here`.
+  """
   , json: "{\"foo\": [42, 43]}"
   , solution: [ "42.0", "43.0" ]
   }
