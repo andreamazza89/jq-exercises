@@ -169,11 +169,14 @@ objectParser p = do
 -- To String
 serialise :: Json -> String
 serialise JNull = "null"
-serialise (JString s) = s
+serialise (JString s) = wrapWithQuotes s
 serialise (JNumber n) = show n
 serialise (JBoolean b) = show b
 serialise (JArray a) = "[ " <>  (String.joinWith ", " (map serialise a)) <> " ]"
-serialise (JObject o) = "{ " <> (String.joinWith ", " (map (\(Tuple k v) -> k <> ": " <> serialise v) (toTupleArray o))) <> " }"
+serialise (JObject o) = "{ " <> (String.joinWith ", " (map (\(Tuple k v) -> wrapWithQuotes k <> ": " <> serialise v) (toTupleArray o))) <> " }"
+
+wrapWithQuotes :: String -> String
+wrapWithQuotes content =  "\"" <> content <> "\""
 
 toTupleArray :: forall a b. Map a b -> Array (Tuple a b)
 toTupleArray map =

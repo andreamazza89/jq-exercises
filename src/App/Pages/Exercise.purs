@@ -49,11 +49,16 @@ mkExercise = do
           , children:
               [ h2 exercise.name
               , Markdown.build exercise.description
-              , DOM.textarea { value: exercise.json, disabled: true }
-              , DOM.textarea
-                  { value: state.exerciseInput
-                  , onChange: inputChanged dispatch ExerciseInputUpdated
-                  , placeholder: "Your JQ code goes here"
+              , DOM.div
+                  { className: "grid"
+                  , children:
+                      [ DOM.textarea { value: exercise.json, disabled: true }
+                      , DOM.textarea
+                          { value: state.exerciseInput
+                          , onChange: inputChanged dispatch ExerciseInputUpdated
+                          , placeholder: "Your JQ code goes here"
+                          }
+                      ]
                   }
               , outcome exercise state
               ]
