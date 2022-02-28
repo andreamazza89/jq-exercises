@@ -1,10 +1,13 @@
 module App.DomUtils
-  ( h2
+  ( button
   , errorMessage
+  , h2
   , inputChanged
+  , row
   , showJson
   , successMessage
-  ) where
+  )
+  where
 
 import Prelude
 import Data.Maybe (fromMaybe)
@@ -14,6 +17,14 @@ import React.Basic.DOM as DOM
 import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Events (EventHandler)
 import React.Basic.Hooks (JSX)
+
+button :: String -> EventHandler -> JSX
+button text onClick =
+  DOM.button
+    { children: [ DOM.text text ]
+    , className: "outline"
+    , onClick
+    }
 
 inputChanged :: forall action. (action -> Effect Unit) -> (String -> action) -> EventHandler
 inputChanged dispatch buildAction = capture targetValue (fromMaybe "does this ever happen?" >>> buildAction >>> dispatch)
@@ -26,6 +37,9 @@ errorMessage = textWithColor "#fd5050"
 
 successMessage :: String -> JSX
 successMessage = textWithColor "#21c782"
+
+row :: Array JSX -> JSX
+row items = DOM.div { className: "grid", children: items }
 
 textWithColor :: String -> String -> JSX
 textWithColor color text = DOM.h4 { children: [ DOM.text text ], style: (css { color }) }

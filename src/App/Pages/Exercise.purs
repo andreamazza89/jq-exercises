@@ -1,6 +1,6 @@
 module App.Pages.Exercise (mkExercise) where
 
-import App.DomUtils (errorMessage, h2, inputChanged, showJson, successMessage)
+import App.DomUtils (errorMessage, h2, inputChanged, row, showJson, successMessage)
 import Prelude
 import App.Exercises (Exercise)
 import Data.Array (all, length, zip) as Array
@@ -44,22 +44,19 @@ mkExercise = do
   component "Exercise" \exercise -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
     pure
-      $ DOM.section
+      $ DOM.div
           { className: "container"
           , children:
               [ h2 exercise.name
               , Markdown.build exercise.description
-              , DOM.div
-                  { className: "grid"
-                  , children:
-                      [ DOM.textarea { value: exercise.json, disabled: true }
-                      , DOM.textarea
-                          { value: state.exerciseInput
-                          , onChange: inputChanged dispatch ExerciseInputUpdated
-                          , placeholder: "Your JQ code goes here"
-                          }
-                      ]
-                  }
+              , row
+                  [ DOM.textarea { value: exercise.json, disabled: true }
+                  , DOM.textarea
+                      { value: state.exerciseInput
+                      , onChange: inputChanged dispatch ExerciseInputUpdated
+                      , placeholder: "Your JQ code goes here"
+                      }
+                  ]
               , outcome exercise state
               ]
           }
@@ -75,13 +72,10 @@ outcome exercise state = case toViewExercise exercise state of
   Failed given expected ->
     DOM.div_
       [ errorMessage "Not quite, try again"
-      , DOM.div
-          { children:
-              [ showJson "Output from your Expression" given
-              , showJson "Expected Output" expected
-              ]
-          , className: "grid"
-          }
+      , row
+          [ showJson "Output from your Expression" given
+          , showJson "Expected Output" expected
+          ]
       ]
   Success output ->
     DOM.div_

@@ -3,7 +3,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import App.DomUtils (errorMessage, inputChanged, showJson)
+import App.DomUtils (button, errorMessage, inputChanged, row, showJson)
 import App.Exercises as Exercises
 import Data.Either (either)
 import Effect (Effect)
@@ -46,37 +46,24 @@ mkHome = do
       $ DOM.div
           { className: "container"
           , children:
-              [ DOM.div
-                  { className: "grid"
-                  , children:
-                      [ DOM.button
-                          { children: [ DOM.text "Go to the first exercise" ]
-                          , className: "outline"
-                          , onClick: nav.exercise (Exercises.first)
-                          }
-                      , DOM.button
-                          { children: [ DOM.text "View all exercises" ]
-                          , className: "outline"
-                          , onClick: nav.allExercises
-                          }
-                      ]
-                  }
+              [ row
+                  [ button "Go to the first exercise" (nav.exercise (Exercises.first))
+                  , button "View all exercises" nav.allExercises
+                  ]
               , Markdown.build appDescription
-              , DOM.div
-                  { className: "grid"
-                  , children:
-                      [ DOM.textarea
-                          { value: state.jsonInput
-                          , onChange: inputChanged dispatch JsonInputUpdated
-                          }
-                      , DOM.textarea
-                          { value: state.expressionInput
-                          , onChange: inputChanged dispatch ExpressionInputUpdated
-                          }
-                      ]
-                  }
+              , row
+                  [ DOM.textarea
+                      { value: state.jsonInput
+                      , onChange: inputChanged dispatch JsonInputUpdated
+                      }
+                  , DOM.textarea
+                      { value: state.expressionInput
+                      , onChange: inputChanged dispatch ExpressionInputUpdated
+                      }
+                  ]
               , DOM.div_
-                  ( either (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
+                  ( either
+                      (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
                       (\output -> [ showJson "Output from your Expression" output ])
                       (JQ.run state.jsonInput state.expressionInput)
                   )
