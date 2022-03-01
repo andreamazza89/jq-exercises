@@ -101,10 +101,12 @@ toViewExercise exercise state =
       # maybe
           (Failed output exercise.solution)
           ( \comparisons ->
-              if Array.length exercise.solution == Array.length output && Array.all identity comparisons then
+              if sameLength exercise.solution output && Array.all identity comparisons then
                 Success output
               else
                 Failed output exercise.solution
           )
 
   compareJsonStrings (Tuple l r) = JQ.jsonEquals l r
+
+  sameLength l r = Array.length l == Array.length r
