@@ -2,7 +2,13 @@ module App.Exercises
   ( Exercise
   , all
   , first
-  ) where
+  , next
+  )
+  where
+
+import Prelude ((#), (==), (>>>), flip, not)
+import Data.Array as Array
+import Data.Maybe (Maybe(..))
 
 type Exercise
   = { name :: String
@@ -16,6 +22,16 @@ all = [ identity ]
 
 first :: Exercise
 first = identity
+
+next :: Exercise -> Maybe Exercise
+next exercise =
+  Array.dropWhile (isSameExercise exercise >>> not) all
+    # flip Array.index 1
+
+isSameExercise :: Exercise -> Exercise -> Boolean
+isSameExercise l r = -- we should probably 'upgrade' Exercise to a NewType and then implement EQ, though at the moment
+  -- this is light touch/simple data bag, so will wait and see if necessary.
+  l.name == r.name
 
 identity :: Exercise
 identity =

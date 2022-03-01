@@ -3,7 +3,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import App.DomUtils (button, errorMessage, inputChanged, row, showJson)
+import App.DomUtils (container, button, errorMessage, inputChanged, row, showJson)
 import App.Exercises as Exercises
 import Data.Either (either)
 import Effect (Effect)
@@ -43,32 +43,29 @@ mkHome = do
   component "Home" \nav -> React.do
     state /\ dispatch <- useReducer initialState reducer
     pure
-      $ DOM.div
-          { className: "container"
-          , children:
-              [ row
-                  [ button "Go to the first exercise" (nav.exercise (Exercises.first))
-                  , button "View all exercises" nav.allExercises
-                  ]
-              , Markdown.build appDescription
-              , row
-                  [ DOM.textarea
-                      { value: state.jsonInput
-                      , onChange: inputChanged dispatch JsonInputUpdated
-                      }
-                  , DOM.textarea
-                      { value: state.expressionInput
-                      , onChange: inputChanged dispatch ExpressionInputUpdated
-                      }
-                  ]
-              , DOM.div_
-                  ( either
-                      (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
-                      (\output -> [ showJson "Output from your Expression" output ])
-                      (JQ.run state.jsonInput state.expressionInput)
-                  )
+      $ container
+          [ row
+              [ button "Go to the first exercise" (nav.exercise (Exercises.first))
+              , button "View all exercises" nav.allExercises
               ]
-          }
+          , Markdown.build appDescription
+          , row
+              [ DOM.textarea
+                  { value: state.jsonInput
+                  , onChange: inputChanged dispatch JsonInputUpdated
+                  }
+              , DOM.textarea
+                  { value: state.expressionInput
+                  , onChange: inputChanged dispatch ExpressionInputUpdated
+                  }
+              ]
+          , DOM.div_
+              ( either
+                  (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
+                  (\output -> [ showJson "Output from your Expression" output ])
+                  (JQ.run state.jsonInput state.expressionInput)
+              )
+          ]
 
 appDescription :: String
 appDescription =

@@ -1,13 +1,13 @@
 module App.DomUtils
   ( button
+  , container
   , errorMessage
   , h2
   , inputChanged
   , row
   , showJson
   , successMessage
-  )
-  where
+  ) where
 
 import Prelude
 import Data.Maybe (fromMaybe)
@@ -24,6 +24,13 @@ button text onClick =
     { children: [ DOM.text text ]
     , className: "outline"
     , onClick
+    }
+
+container :: Array JSX -> JSX
+container children =
+  DOM.div
+    { className: "container"
+    , children
     }
 
 inputChanged :: forall action. (action -> Effect Unit) -> (String -> action) -> EventHandler

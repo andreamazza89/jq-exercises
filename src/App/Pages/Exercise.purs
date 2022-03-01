@@ -1,8 +1,9 @@
 module App.Pages.Exercise (mkExercise) where
 
-import App.DomUtils (errorMessage, h2, inputChanged, row, showJson, successMessage)
 import Prelude
+import App.DomUtils (button, container, errorMessage, h2, inputChanged, row, showJson, successMessage)
 import App.Exercises (Exercise)
+import App.Exercises (next) as Exercises
 import Data.Array (all, length, zip) as Array
 import Data.Either (Either(..))
 import Data.Maybe (maybe)
@@ -10,10 +11,16 @@ import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import JQ as JQ
-import WebComponents.Markdown as Markdown
+import Navigation (Navigation)
 import React.Basic.DOM as DOM
 import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
+import WebComponents.Markdown as Markdown
+
+type ExerciseProps
+  = { exercise :: Exercise
+    , navigation :: Navigation
+    }
 
 type ExerciseState
   = { exerciseInput :: String
@@ -38,28 +45,29 @@ exerciseReducerFn =
         ExerciseInputUpdated newInput -> s { exerciseInput = newInput }
     )
 
-mkExercise :: Component Exercise
+mkExercise :: Component ExerciseProps
 mkExercise = do
   reducer <- exerciseReducerFn
-  component "Exercise" \exercise -> React.do
+  component "Exercise" \{ exercise, navigation } -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
     pure
-      $ DOM.div
-          { className: "container"
-          , children:
-              [ h2 exercise.name
-              , Markdown.build exercise.description
-              , row
-                  [ DOM.textarea { value: exercise.json, disabled: true }
-                  , DOM.textarea
-                      { value: state.exerciseInput
-                      , onChange: inputChanged dispatch ExerciseInputUpdated
-                      , placeholder: "Your JQ code goes here"
-                      }
-                  ]
-              , outcome exercise state
+      $ container
+          [ row
+              [ maybe (mempty) (navigation.exercise >>> button "Go to the next exercise") (Exercises.next exercise)
+              , button "View all exercises" navigation.allExercises
               ]
-          }
+          , h2 exercise.name
+          , Markdown.build exercise.description
+          , row
+              [ DOM.textarea { value: exercise.json, disabled: true }
+              , DOM.textarea
+                  { value: state.exerciseInput
+                  , onChange: inputChanged dispatch ExerciseInputUpdated
+                  , placeholder: "Your JQ code goes here"
+                  }
+              ]
+          , outcome exercise state
+          ]
 
 outcome :: Exercise -> ExerciseState -> JSX
 outcome exercise state = case toViewExercise exercise state of
