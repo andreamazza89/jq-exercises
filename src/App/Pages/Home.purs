@@ -3,7 +3,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import App.DomUtils (container, button, errorMessage, inputChanged, row, showJson)
+import App.DomUtils (container, button, errorMessage, inputChanged, row, showJsons)
 import App.Exercises as Exercises
 import Data.Either (either)
 import Effect (Effect)
@@ -62,7 +62,7 @@ mkHome = do
           , DOM.div_
               ( either
                   (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
-                  (\output -> [ showJson "Output from your Expression" output ])
+                  (\output -> [ showJsons "Output from your Expression" output ])
                   (JQ.run state.jsonInput state.expressionInput)
               )
           ]

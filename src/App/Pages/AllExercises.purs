@@ -13,7 +13,7 @@ mkAllExercises = do
   component "AllExercises" \nav -> React.do
     pure
       $ container
-          ( [ h2 "Here'bs a list of all the exercises available:" ]
+          ( [ h2 "Here's a list of all the exercises available:" ]
               <> links nav
           )
 
@@ -22,7 +22,9 @@ links nav = (map (toLink nav) Exercises.all)
 
 toLink :: Navigation -> Exercise -> JSX
 toLink navigation exercise =
-  DOM.a
-    { children: [ DOM.text exercise.name ]
-    , onClick: navigation.exercise exercise
-    }
+  DOM.article_
+    [ DOM.a
+        { children: [ DOM.text exercise.name ]
+        , onClick: navigation.exercise exercise
+        }
+    ]

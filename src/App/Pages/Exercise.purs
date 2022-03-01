@@ -1,7 +1,7 @@
 module App.Pages.Exercise (mkExercise) where
 
 import Prelude
-import App.DomUtils (button, container, errorMessage, h2, inputChanged, row, showJson, successMessage)
+import App.DomUtils (button, container, errorMessage, h2, inputChanged, row, showJson, showJsons, successMessage)
 import App.Exercises (Exercise)
 import App.Exercises (next) as Exercises
 import Data.Array (all, length, zip) as Array
@@ -13,6 +13,8 @@ import Effect (Effect)
 import JQ as JQ
 import Navigation (Navigation)
 import React.Basic.DOM as DOM
+import React.Basic.DOM.Events (capture_)
+import React.Basic.Events (EventHandler)
 import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
 import React.Basic.Hooks as React
 import WebComponents.Markdown as Markdown
@@ -28,6 +30,7 @@ type ExerciseState
 
 data ExerciseAction
   = ExerciseInputUpdated String
+  | ResetInput
 
 data ViewExercise
   = NotStarted
@@ -43,23 +46,32 @@ exerciseReducerFn =
   mkReducer
     ( \s action -> case action of
         ExerciseInputUpdated newInput -> s { exerciseInput = newInput }
+        ResetInput -> s { exerciseInput = "" }
     )
+
+reset :: (ExerciseAction -> Effect Unit) -> EventHandler
+reset dispatch = capture_ (dispatch ResetInput)
 
 mkExercise :: Component ExerciseProps
 mkExercise = do
   reducer <- exerciseReducerFn
   component "Exercise" \{ exercise, navigation } -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
+    let
+      nextExercise =
+        Exercises.next exercise
+          # maybe
+              (mempty)
+              (\ex -> button "Go to the next exercise" (reset dispatch <> navigation.exercise ex))
+
+      viewAll = button "View all exercises" navigation.allExercises
     pure
       $ container
-          [ row
-              [ maybe (mempty) (navigation.exercise >>> button "Go to the next exercise") (Exercises.next exercise)
-              , button "View all exercises" navigation.allExercises
-              ]
+          [ row [ nextExercise, viewAll ]
           , h2 exercise.name
           , Markdown.build exercise.description
           , row
-              [ DOM.textarea { value: exercise.json, disabled: true }
+              [ showJson exercise.json
               , DOM.textarea
                   { value: state.exerciseInput
                   , onChange: inputChanged dispatch ExerciseInputUpdated
@@ -81,14 +93,14 @@ outcome exercise state = case toViewExercise exercise state of
     DOM.div_
       [ errorMessage "Not quite, try again"
       , row
-          [ showJson "Output from your Expression" given
-          , showJson "Expected Output" expected
+          [ showJsons "Output from your Expression" given
+          , showJsons "Expected Output" expected
           ]
       ]
   Success output ->
     DOM.div_
       [ successMessage "Success!"
-      , showJson "Output from your Expression" output
+      , showJsons "Output from your Expression" output
       ]
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
