@@ -25,8 +25,8 @@ data Action
 
 initialState :: HomeState
 initialState =
-  { jsonInput: "{\"foo\": 42}"
-  , expressionInput: ".foo"
+  { jsonInput: """{"iLove": "bread"}"""
+  , expressionInput: ".iLove"
   }
 
 reducerFn :: Effect (Reducer HomeState Action)
@@ -82,6 +82,9 @@ appDescription =
   We only support a __subset__ of the jq language, so if something is missing, that's because
   it's not implemented yet. You can ask for it to be added by
   opening an issue in [this project's repo](https://github.com/andreamazza89/jq-exercises/issues/new).
+
+  Also, the error messages are sometimes misleading / not helpful. Improving this area is on our roadmap,
+  but until then - apologies.
 
   ---
 
