@@ -25,6 +25,7 @@ all =
   , comma
   , iterator
   , accessorChaining
+  , pipe
   ]
 
 first :: Exercise
@@ -133,7 +134,7 @@ jq output: [ 1, 2, { "iLove": "bread" } ]
 
 **Objective**: build the following array of colours: `[ "Green", "White", "Red" ]`.
 
-You could _cheat_ and just type it out, but that would be no fun; try to use the given input.
+You could _cheat_ and just type it out, but that would be no fun; try to use the given input as well.
 """
   , json:
       """
@@ -267,5 +268,53 @@ jq output:
       [ """ "Green" """
       , """ "White" """
       , """ "Red" """
+      ]
+  }
+
+pipe :: Exercise
+pipe =
+  { name: "Pipe"
+  , description:
+      """
+The pipe operator (`|`) lets you sequence JQ expressions: the JSON output from the expression on the left of the
+pipe is fed as input to the expression on the right.
+
+If the JQ expression on the left yields more than one JSON output, then the JQ expression on the right runs for each of the
+outputs:
+
+```jq
+json input:
+  {
+    "pizzas": [
+      { "type": "margherita" },
+      { "type": "quattro formaggi" }
+    ]
+  }
+jq expression: .pizzas | .[] | .type
+
+jq output:
+  - "margherita"
+  - "quattro formaggi"
+```
+
+As you can see, you can have as many pipes as you like.
+
+Often you can refactor a JQ expression to not use pipes; for instance, the example above could just be `.pizzas[].type`.
+However, pipes can be very useful in breaking down a problem into smaller steps and make a program easier to reason about.
+
+**Objective**: return Water and Yeast as separate outputs, using pipe, accessors and comma.
+"""
+  , json:
+      """
+{
+  "type": "Baguette",
+  "rating": 4.5,
+  "ingredients": ["Flour", "Water", "Yeast", "Salt"],
+  "crispiness": ":star-struck:"
+}
+"""
+  , solution:
+      [ """ "Water" """
+      , """ "Yeast" """
       ]
   }
