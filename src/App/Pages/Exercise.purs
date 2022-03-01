@@ -1,7 +1,7 @@
 module App.Pages.Exercise (mkExercise) where
 
-import App.DomUtils (errorMessage, h2, inputChanged, row, showJson, successMessage)
 import Prelude
+import App.DomUtils (errorMessage, h2, inputChanged, row, showJson, successMessage)
 import App.Exercises (Exercise)
 import Data.Array (all, length, zip) as Array
 import Data.Either (Either(..))
@@ -9,18 +9,22 @@ import Data.Maybe (maybe)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
+import Effect.Console (logShow)
+import Effect.Timer (clearInterval, setInterval)
 import JQ as JQ
-import WebComponents.Markdown as Markdown
 import React.Basic.DOM as DOM
-import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, (/\))
+import React.Basic.Hooks (Component, JSX, Reducer, component, mkReducer, useReducer, useEffect, (/\))
 import React.Basic.Hooks as React
+import WebComponents.Markdown as Markdown
 
 type ExerciseState
   = { exerciseInput :: String
+    , latest :: String
     }
 
 data ExerciseAction
   = ExerciseInputUpdated String
+  | Synch
 
 data ViewExercise
   = NotStarted
@@ -29,13 +33,14 @@ data ViewExercise
   | Success (Array String)
 
 initialExerciseState :: ExerciseState
-initialExerciseState = { exerciseInput: "" }
+initialExerciseState = { exerciseInput: "", latest: "" }
 
 exerciseReducerFn :: Effect (Reducer ExerciseState ExerciseAction)
 exerciseReducerFn =
   mkReducer
     ( \s action -> case action of
         ExerciseInputUpdated newInput -> s { exerciseInput = newInput }
+        Synch -> s { latest = s.exerciseInput }
     )
 
 mkExercise :: Component Exercise
@@ -43,6 +48,9 @@ mkExercise = do
   reducer <- exerciseReducerFn
   component "Exercise" \exercise -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
+    useEffect state do
+      timeoutId <- setInterval 500 (dispatch Synch)
+      pure (clearInterval timeoutId)
     pure
       $ DOM.div
           { className: "container"
@@ -85,9 +93,9 @@ outcome exercise state = case toViewExercise exercise state of
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
 toViewExercise exercise state =
-  if (state.exerciseInput == "") then
+  if (state.latest == "") then
     NotStarted
-  else case JQ.run exercise.json state.exerciseInput of
+  else case JQ.run exercise.json state.latest of
     Right output -> checkSolution output
     Left reason -> FailedToRun $ "Something went wrong: " <> reason
   where

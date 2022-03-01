@@ -1,11 +1,13 @@
 { name = "jq-exercises"
 , dependencies =
   [ "arrays"
+  , "console"
   , "effect"
   , "either"
   , "exceptions"
   , "foldable-traversable"
   , "jq-interpreter"
+  , "js-timers"
   , "maybe"
   , "prelude"
   , "react-basic"
