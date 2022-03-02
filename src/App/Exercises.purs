@@ -27,6 +27,8 @@ all =
   , accessorChaining
   , pipe
   , arrayConstructor
+  , objectConstructorPartOne
+  , objectConstructorPartTwo
   ]
 
 first :: Exercise
@@ -369,5 +371,120 @@ In the above:
 """
   , solution:
       [ """["Prawn Cocktail", "Fruits de Mer", "Lasagne", "Tiramisu"]"""
+      ]
+  }
+
+objectConstructorPartOne :: Exercise
+objectConstructorPartOne =
+  { name: "Objecty constructor - Part one"
+  , description:
+      """
+Similar to the array constructor, the object constructor (`{ ... }`) deserves special mention.
+
+Unlike the array constructor, the comma here does separate pairs of key/values, so the mental
+model is `{ <key1>: <value1>, <key2>: <value2>, ... }`.
+
+Both keys and values are JQ expressions, from simple literals (like `{ "iLove": "bread"}`) to
+more complex ones (like `{ "favouritePizza": .pizzas | .[3] }`), though you might need to help
+JQ with round parentheses in some cases (as in `{ (<key>): (<val>) }`).
+
+You can also drop the quotation marks around the key name as long as it does not contain any funky
+characters: `{ unQuotedKeyName: "pasta" }`.
+
+Finally, shortHand syntax is also available: `{ pasta }` is equivalent to `{ "pasta": .pasta }`
+or `{ pasta: .pasta }`.
+
+**Objective**: create the following object using as many of the methods above as you can.
+```json
+{
+  "bread": "Pugliese",
+  "water": "Still",
+  "panino": "Prosciutto e Mozzarella"
+}
+```
+"""
+  , json:
+      """
+{
+  "bread": "Pugliese",
+  "typesOfWater": ["Tap", "Still", "Sparkling"],
+  "recipes": {
+    "simple": "Prosciutto e Mozzarella",
+    "complex": "Caponata"
+  }
+}
+"""
+  , solution:
+      [ """
+      {
+        "bread": "Pugliese",
+        "water": "Still",
+        "panino": "Prosciutto e Mozzarella"
+      }
+      """
+      ]
+  }
+
+
+objectConstructorPartTwo :: Exercise
+objectConstructorPartTwo =
+  { name: "Objecty constructor - Part two"
+  , description:
+      """
+_Caution_: this one is a little mind-bending. 
+
+Recall how:
+
+- keys and values in an object constructor are both JQ expressions
+- JQ expressions can output one or more JSON values
+
+Now, if any of the keys/values in your object output multiple JSON values, then you
+are building multiple objects.
+
+Specifically, we take the cartesian product of each key/value pair individually, and then
+the cartesian of all the pairs (using pseudocode to work through an example):
+```
+if
+
+expAK outputs the strings "*" and "@"
+expAV outputs the string "%"
+expBK outputs the string "~"
+expBV outputs the strings "#" and "&"
+
+then we substitute in the object constructor
+
+{ expAK: expAV, expBK: expBV}
+
+with
+
+{ ("*", "@"): ("%"), ("~"): ("#", "&")}
+
+then take the cartesian product of individual keys/values
+
+{ ("*"): ("%"), ("~"): ("#")}
+{ ("@"): ("%"), ("~"): ("&")}
+
+and then the cartesian product of all key/value pairs for the result
+
+{ ("*"): ("%"), ("~"): ("#")}
+{ ("*"): ("%"), ("~"): ("&")}
+{ ("@"): ("%"), ("~"): ("#")}
+{ ("@"): ("%"), ("~"): ("&")}
+
+```
+
+**Objective**: You are very hungry! Create as many objects as there are dishes available, as in
+`{ "dish": "Lasagne" }  { "dish": "Ta..`.
+"""
+  , json:
+      """
+{
+  "dishes": ["Lasagne", "Tagliatelle", "Porchetta"]
+}
+"""
+  , solution:
+      [ """ { "dish": "Lasagne" } """
+      , """ { "dish": "Tagliatelle" } """
+      , """ { "dish": "Porchetta" } """
       ]
   }
