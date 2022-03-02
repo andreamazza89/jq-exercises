@@ -1,7 +1,6 @@
 module Test.Parser where
 
 import Helpers.Expression
-import Test.Helpers.Json (num, str)
 
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
@@ -10,6 +9,7 @@ import Effect.Exception (Error)
 import Expression (Expression)
 import Parser (parse)
 import Prelude (Unit, ($), discard, pure, unit)
+import Test.Helpers.Json (num, str)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 
@@ -76,6 +76,16 @@ main = do
           (constructObject
             [
               Tuple (literal (str "pizza")) (literal (num 42.0))
+            ]
+          )
+      it "shorthand syntax (key name is also the key accessor)" do
+        testParser
+          """
+            { salame }
+          """
+          (constructObject
+            [
+              Tuple (literal (str "salame")) (accessByKeyNames ["salame"])
             ]
           )
     describe "Pipes" do

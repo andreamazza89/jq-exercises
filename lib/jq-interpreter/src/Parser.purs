@@ -8,18 +8,16 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
 import Data.Array as Array
-import Data.Array.NonEmpty (fromFoldable) as NE
-import Data.CodePoint.Unicode (isAlphaNum)
+import Data.Array.NonEmpty (fromFoldable, singleton) as NE
+import Data.Array.NonEmpty (singleton)
 import Data.Bifunctor (lmap)
+import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
 import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
--- Thought the Expression type is not opaque, I wonder if it might be nicer to decouple this module by exposing
--- constructors instead like we do in Helpers.Expression? I think we cannot make it opaque as we pattern-match
--- in the Interpreter.
-import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
+import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
@@ -105,20 +103,27 @@ arrayConstructorParser p = try emptyArray <|> try arrayWithItems
 
 objectConstructorParser :: Parser String Expression -> Parser String Expression
 objectConstructorParser p =
-  sepByCommas keyValueParser
+  sepByCommas (try keyValueParser <|> try shortHandParser)
     # inCurlies
     # map ObjectConstructor
   where
-  keyValueParser :: Parser String (KeyValuePair)
+  keyValueParser :: Parser String KeyValuePair
   keyValueParser = do
     key <- p <|> unquotedString
     _ <- colon
     value <- objectValueParser p
     pure $ Tuple key value
 
-  unquotedString =
-    ident
-      # map (Json.buildString >>> Literal)
+  shortHandParser :: Parser String KeyValuePair
+  shortHandParser = do
+    identifier <- ident
+    pure $ Tuple (toStringLiteral identifier) (accessByKeyName identifier)
+
+  unquotedString :: Parser String Expression
+  unquotedString = map toStringLiteral ident
+
+  toStringLiteral :: String -> Expression
+  toStringLiteral = Json.buildString >>> Literal
 
 accessorParser :: Parser String Expression
 accessorParser = do

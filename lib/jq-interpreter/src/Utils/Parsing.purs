@@ -46,6 +46,7 @@ ident = do
   head <- identHead # map charToString
   tail <- many1 identTail # map charsToString
   pure (head <> tail)
+    # spaced
 
 -- Parser Modifiers
 quoted :: forall a. Parser String a -> Parser String a
