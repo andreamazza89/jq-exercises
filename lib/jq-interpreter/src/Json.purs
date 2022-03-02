@@ -4,6 +4,7 @@ module Json
   , atKey
   , buildArray
   , buildObject
+  , buildString
   , emptyArray
   , emptyObject
   , parse
@@ -77,6 +78,9 @@ buildObject_ =
  
 emptyObject :: Json
 emptyObject = buildObject_ []
+
+buildString :: String -> Json
+buildString = JString
 
 -- Read
 atKey :: String -> Json -> Maybe Json

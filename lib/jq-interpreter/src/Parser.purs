@@ -4,7 +4,6 @@ module Parser
   ) where
 
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
@@ -17,6 +16,9 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
+-- Thought the Expression type is not opaque, I wonder if it might be nicer to decouple this module by exposing
+-- constructors instead like we do in Helpers.Expression? I think we cannot make it opaque as we pattern-match
+-- in the Interpreter.
 import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
@@ -25,15 +27,17 @@ import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (eof, satisfy)
 
 parse :: String -> Either String Expression
-parse input = runParser input parser
-  # lmap parseErrorMessage
+parse input =
+  runParser input parser
+    # lmap parseErrorMessage
 
 parser :: Parser String Expression
 parser = do
-  exp <- fix
-    ( \p ->
-        expressionParser $ parserConfig p allInfixParsers
-    )
+  exp <-
+    fix
+      ( \p ->
+          expressionParser $ parserConfig p allInfixParsers
+      )
   _ <- eof
   pure exp
 
@@ -78,10 +82,8 @@ objectValueParser p =
   in
     expressionParser (parserConfig p allInfixButComma)
 
-parenthesesParser :: Parser String Expression -> Parser String Expression 
-parenthesesParser =
-  inParentheses
-  
+parenthesesParser :: Parser String Expression -> Parser String Expression
+parenthesesParser = inParentheses
 
 literalParser :: Parser String Expression
 literalParser = do
@@ -109,10 +111,14 @@ objectConstructorParser p =
   where
   keyValueParser :: Parser String (KeyValuePair)
   keyValueParser = do
-    key <- p
+    key <- p <|> unquotedString
     _ <- colon
     value <- objectValueParser p
     pure $ Tuple key value
+
+  unquotedString =
+    ident
+      # map (Json.buildString >>> Literal)
 
 accessorParser :: Parser String Expression
 accessorParser = do

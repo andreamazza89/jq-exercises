@@ -2,6 +2,7 @@
 , dependencies =
   [ "aff"
   , "arrays"
+  , "bifunctors"
   , "control"
   , "effect"
   , "either"

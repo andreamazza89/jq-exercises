@@ -1,14 +1,15 @@
 module Utils.Parsing where
 
+import Control.Alt ((<|>))
 import Data.Array (fromFoldable) as Array
-import Data.CodePoint.Unicode (isDecDigit)
+import Data.CodePoint.Unicode (isAlpha, isAlphaNum, isDecDigit)
 import Data.Foldable as Foldable
 import Data.Int (fromString) as Int
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.String.CodePoints (codePointFromChar)
 import Data.String.CodeUnits (singleton) as String
-import Prelude (bind, discard, map, pure, (#), ($), (-), (<), (>>>))
+import Prelude (bind, discard, map, pure, (#), ($), (-), (<), (>>>), (<>))
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, many1, optionMaybe, sepBy)
 import Text.Parsing.Parser.String (char, satisfy, skipSpaces, string)
@@ -20,7 +21,6 @@ comma = char ','
 colon :: Parser String Char
 colon = char ':'
 
-
 dash :: Parser String Char
 dash = (char '-')
 
@@ -29,6 +29,23 @@ digit = satisfy (codePointFromChar >>> isDecDigit)
 
 dot :: Parser String Char
 dot = char '.'
+
+identHead :: Parser String Char
+identHead =
+  satisfy (codePointFromChar >>> isAlpha)
+    <|> char '_'
+
+identTail :: Parser String Char
+identTail =
+  identHead
+    <|> satisfy (codePointFromChar >>> isDecDigit)
+
+-- Ident
+ident :: Parser String String
+ident = do
+  head <- identHead # map charToString
+  tail <- many1 identTail # map charsToString
+  pure (head <> tail)
 
 -- Parser Modifiers
 quoted :: forall a. Parser String a -> Parser String a
@@ -79,7 +96,6 @@ closeParenthesis :: Parser String Char
 closeParenthesis = spaced $ char ')'
 
 -- Int
-
 intParser :: Parser String Int
 intParser =
   many1 digit
@@ -89,25 +105,27 @@ intParser =
 charsToInt :: NonEmptyList Char -> Maybe Int
 charsToInt = charsToString >>> Int.fromString
 
-charsToString :: NonEmptyList Char -> String
-charsToString = Foldable.foldMap String.singleton
+charToString :: Char -> String
+charToString = String.singleton
 
+charsToString :: NonEmptyList Char -> String
+charsToString = Foldable.foldMap charToString
 
 -- Parsing expressions with a Pratt Parser - this blog post really helped me figure it out:
 -- http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
-type ParserConfig exp =
-  { prefix :: Array (Parser String exp)
-  , infixP :: Array (InfixParser exp)
-  }
+type ParserConfig exp
+  = { prefix :: Array (Parser String exp)
+    , infixP :: Array (InfixParser exp)
+    }
 
 type InfixParser exp
   = Parser String (InfixConfig exp)
 
-type InfixConfig exp =
-  { prec :: Precedence
-  , buildExp :: exp -> exp -> exp
-  , associativity :: Associativity
-  }
+type InfixConfig exp
+  = { prec :: Precedence
+    , buildExp :: exp -> exp -> exp
+    , associativity :: Associativity
+    }
 
 type Precedence
   = Int
@@ -116,13 +134,13 @@ data Associativity
   = LAssociative
   | RAssociative
 
-expressionParser :: forall exp.  ParserConfig exp -> Parser String exp
-expressionParser =
-  expressionParser_ 0
-expressionParser_ :: forall exp.  Precedence -> ParserConfig exp -> Parser String exp
+expressionParser :: forall exp. ParserConfig exp -> Parser String exp
+expressionParser = expressionParser_ 0
+
+expressionParser_ :: forall exp. Precedence -> ParserConfig exp -> Parser String exp
 expressionParser_ precedence input = do
-    leftExp <- spaced $ choice input.prefix
-    loop precedence leftExp input
+  leftExp <- spaced $ choice input.prefix
+  loop precedence leftExp input
 
 loop :: forall exp. Precedence -> exp -> ParserConfig exp -> Parser String exp
 loop precedence leftExp input = do
@@ -131,18 +149,17 @@ loop precedence leftExp input = do
     # map parseInfix
     # fromMaybe (pure leftExp)
   where
-    parseInfix infixConfig = 
-      if precedence < infixConfig.prec then do
-        _ <- choice input.infixP
-        rightExp <- expressionParser_ (getPrecedence infixConfig) input
-        loop precedence (infixConfig.buildExp leftExp rightExp) input
-      else
-        pure leftExp
-    getPrecedence infixConfig =
-      case infixConfig.associativity of
-        LAssociative -> infixConfig.prec
-        RAssociative -> infixConfig.prec - 1
-    
+  parseInfix infixConfig =
+    if precedence < infixConfig.prec then do
+      _ <- choice input.infixP
+      rightExp <- expressionParser_ (getPrecedence infixConfig) input
+      loop precedence (infixConfig.buildExp leftExp rightExp) input
+    else
+      pure leftExp
+
+  getPrecedence infixConfig = case infixConfig.associativity of
+    LAssociative -> infixConfig.prec
+    RAssociative -> infixConfig.prec - 1
 
 infixLeft :: forall exp. String -> Precedence -> (exp -> exp -> exp) -> InfixParser exp
 infixLeft operator precedence buildExpression = do
