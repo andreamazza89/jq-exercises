@@ -26,6 +26,7 @@ all =
   , iterator
   , accessorChaining
   , pipe
+  , arrayConstructor
   ]
 
 first :: Exercise
@@ -316,5 +317,57 @@ However, pipes can be very useful in breaking down a problem into smaller steps 
   , solution:
       [ """ "Water" """
       , """ "Yeast" """
+      ]
+  }
+
+arrayConstructor :: Exercise
+arrayConstructor =
+  { name: "Array constructor"
+  , description:
+      """
+Although we've already discussed how you can create literals in a previous exercise, the array literal
+(`[ ... ]`) deserves special mention.
+
+It looks like when you create an array you list all the items and separate them with comma, like `[ <item1> , <item2> ]`
+but instead JQ 'collects' the output of the expression inbetween brackets into an array, like `[ <some JQ expression> ]`.
+
+Notice that `[ <item1>, <item2> ]` should be thought of as `[ <JQ expression> ]`, where the jq expression uses the comma operator
+(`,`) to yield two JSON values, which are then 'collected' into an array.
+
+Let's see another example:
+```jq
+json input:
+  {
+    "pizzas": [
+      { "type": "margherita" },
+      { "type": "quattro formaggi" }
+    ]
+  }
+jq expression: [ .pizzas | .[] | .type ]
+
+jq output:
+  - ["margherita", "quattro formaggi"]
+```
+In the above:
+  - get the "pizzas" array (yields 1 JSON - `[{"type": "mar...`)
+  - output each value of the array (yields 2 JSON - `{ "type": "mar...` and `{ "type": "qua...`)
+  - pick the "type" property for each value of the array (yields 2 JSON - `"mar...` and `"qua...`)
+  - collect the output of the expression inside brackets in a JSON array (yields 1 JSON - `["margherita", "quattro formaggi"]`)
+
+
+**Objective**: create a single array of all dishes available on the menu.
+"""
+  , json:
+      """
+{
+  "menu": {
+    "starters": ["Prawn Cocktail"],
+    "mains": ["Fruits de Mer", "Lasagne"],
+    "desserts": ["Tiramisu"]
+  }
+}
+"""
+  , solution:
+      [ """["Prawn Cocktail", "Fruits de Mer", "Lasagne", "Tiramisu"]"""
       ]
   }

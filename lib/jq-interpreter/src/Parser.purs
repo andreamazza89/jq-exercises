@@ -8,8 +8,7 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
 import Data.Array as Array
-import Data.Array.NonEmpty (fromFoldable, singleton) as NE
-import Data.Array.NonEmpty (singleton)
+import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.Bifunctor (lmap)
 import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
