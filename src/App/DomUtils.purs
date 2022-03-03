@@ -8,10 +8,13 @@ module App.DomUtils
   , showJson
   , showJsons
   , successMessage
+  , withMinHeight
+  , scrollJqInputIntoView
   ) where
 
 import Prelude
 import Data.Maybe (fromMaybe)
+import Data.Unit
 import Effect (Effect)
 import React.Basic.DOM (css)
 import React.Basic.DOM as DOM
@@ -19,6 +22,8 @@ import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Events (EventHandler)
 import React.Basic.Hooks (JSX)
 import WebComponents.Markdown as Markdown
+
+foreign import scrollJqInputIntoView :: Effect Unit
 
 button :: String -> EventHandler -> JSX
 button text onClick =
@@ -66,3 +71,7 @@ showJson =
 
 toJsonCodeBlock :: String -> String
 toJsonCodeBlock jsonString = "```json\n" <> jsonString <> "\n```"
+
+withMinHeight :: Int -> JSX -> JSX
+withMinHeight minHeight element =
+  DOM.div {children: [element], style: (DOM.css { minHeight: show minHeight <> "px" }) }

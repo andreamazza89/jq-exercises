@@ -1,7 +1,7 @@
 module App.Pages.Exercise (mkExercise) where
 
 import Prelude
-import App.DomUtils (button, container, errorMessage, h2, inputChanged, row, showJson, showJsons, successMessage)
+import App.DomUtils
 import App.Exercises (Exercise)
 import App.Exercises (next) as Exercises
 import Data.Array (all, length, zip) as Array
@@ -75,6 +75,8 @@ mkExercise = do
               , DOM.textarea
                   { value: state.exerciseInput
                   , onChange: inputChanged dispatch ExerciseInputUpdated
+                  , id: "jq-input"
+                  , onFocus: capture_ (scrollJqInputIntoView)
                   , placeholder: "Your JQ code goes here"
                   }
               ]
@@ -83,25 +85,36 @@ mkExercise = do
 
 outcome :: Exercise -> ExerciseState -> JSX
 outcome exercise state = case toViewExercise exercise state of
-  NotStarted -> mempty
+  NotStarted -> extraHeight mempty
   FailedToRun reason ->
-    DOM.div_
-      [ errorMessage "Could not parse or run expression"
-      , DOM.p_ [ DOM.text reason ]
-      ]
-  Failed given expected ->
-    DOM.div_
-      [ errorMessage "Not quite, try again"
-      , row
-          [ showJsons "Output from your Expression" given
-          , showJsons "Expected Output" expected
+    extraHeight
+      ( DOM.div_
+          [ errorMessage "Could not parse or run expression"
+          , DOM.p_ [ DOM.text reason ]
           ]
-      ]
+      )
+  Failed given expected ->
+    extraHeight
+      ( DOM.div_
+          [ errorMessage "Not quite, try again"
+          , row
+              [ showJsons "Output from your Expression" given
+              , showJsons "Expected Output" expected
+              ]
+          ]
+      )
   Success output ->
-    DOM.div_
-      [ successMessage "Success!"
-      , showJsons "Output from your Expression" output
-      ]
+    extraHeight
+      ( DOM.div_
+          [ successMessage "Success!"
+          , showJsons "Output from your Expression" output
+          ]
+      )
+
+-- This is hacky and reveals a lack of good UI design: because the height of the content underneath the JQ expression input 
+-- varies depending on the outcome, we set a fixed height here to prevent jumping up and down as the user types
+extraHeight :: JSX -> JSX
+extraHeight element = withMinHeight 1500 element
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
 toViewExercise exercise state =
