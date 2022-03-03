@@ -12,6 +12,6 @@ exports.scrollJqInputIntoView = function scrollJqInputIntoView() {
     if (document) {
         document
             .getElementById("jq-input")
-            .scrollIntoView({behavior: "smooth"})
+            .scrollIntoView({behavior: "smooth", block: "center"})
     }
 };
