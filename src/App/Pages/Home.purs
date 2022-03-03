@@ -3,7 +3,7 @@ module App.Pages.Home
   ) where
 
 import Prelude
-import App.DomUtils (button, errorMessage, inputChanged, row, showJson)
+import App.DomUtils (container, button, errorMessage, inputChanged, row, showJsons)
 import App.Exercises as Exercises
 import Data.Either (either)
 import Effect (Effect)
@@ -25,8 +25,8 @@ data Action
 
 initialState :: HomeState
 initialState =
-  { jsonInput: "{\"foo\": 42}"
-  , expressionInput: ".foo"
+  { jsonInput: """{"iLove": "bread"}"""
+  , expressionInput: ".iLove"
   }
 
 reducerFn :: Effect (Reducer HomeState Action)
@@ -43,32 +43,29 @@ mkHome = do
   component "Home" \nav -> React.do
     state /\ dispatch <- useReducer initialState reducer
     pure
-      $ DOM.div
-          { className: "container"
-          , children:
-              [ row
-                  [ button "Go to the first exercise" (nav.exercise (Exercises.first))
-                  , button "View all exercises" nav.allExercises
-                  ]
-              , Markdown.build appDescription
-              , row
-                  [ DOM.textarea
-                      { value: state.jsonInput
-                      , onChange: inputChanged dispatch JsonInputUpdated
-                      }
-                  , DOM.textarea
-                      { value: state.expressionInput
-                      , onChange: inputChanged dispatch ExpressionInputUpdated
-                      }
-                  ]
-              , DOM.div_
-                  ( either
-                      (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
-                      (\output -> [ showJson "Output from your Expression" output ])
-                      (JQ.run state.jsonInput state.expressionInput)
-                  )
+      $ container
+          [ row
+              [ button "Go to the first exercise" (nav.exercise (Exercises.first))
+              , button "View all exercises" nav.allExercises
               ]
-          }
+          , Markdown.build appDescription
+          , row
+              [ DOM.textarea
+                  { value: state.jsonInput
+                  , onChange: inputChanged dispatch JsonInputUpdated
+                  }
+              , DOM.textarea
+                  { value: state.expressionInput
+                  , onChange: inputChanged dispatch ExpressionInputUpdated
+                  }
+              ]
+          , DOM.div_
+              ( either
+                  (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
+                  (\output -> [ showJsons "Output from your Expression" output ])
+                  (JQ.run state.jsonInput state.expressionInput)
+              )
+          ]
 
 appDescription :: String
 appDescription =
@@ -82,9 +79,12 @@ appDescription =
   > transform structured data with the same ease that sed, awk, grep and friends let you play with text.
 
   #### Notice
-  We only support a __subset__ of the jq language, so if something is missing, that's because
+  We only support a __small subset__ of the jq language, so if something is missing, that's because
   it's not implemented yet. You can ask for it to be added by
   opening an issue in [this project's repo](https://github.com/andreamazza89/jq-exercises/issues/new).
+
+  Also, the error messages are sometimes misleading / not helpful. Improving this area is on our roadmap,
+  but until then - apologies.
 
   ---
 

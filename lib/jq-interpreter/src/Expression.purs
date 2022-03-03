@@ -1,12 +1,19 @@
-module Expression (Expression(..) , Over(..), Path, Target(..), KeyValuePair(..)) where
+module Expression
+  ( Expression(..)
+  , Over(..)
+  , Path
+  , Target(..)
+  , KeyValuePair(..)
+  , accessByKeyName
+  ) where
 
-import Data.Array.NonEmpty (NonEmptyArray, toArray)
+import Data.Array.NonEmpty (NonEmptyArray, singleton, toArray)
 import Data.Functor (map)
 import Data.Maybe (Maybe)
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
-import Prelude (class Eq, class Show, show, (<>))
+import Prelude (class Eq, class Show, show, (<>), (>>>), ($))
 
 data Expression
   = Identity
@@ -17,8 +24,8 @@ data Expression
   | Pipe Expression Expression
   | Comma Expression Expression
 
-type KeyValuePair =
-  Tuple Expression Expression
+type KeyValuePair
+  = Tuple Expression Expression
 
 type Path
   = NonEmptyArray Target
@@ -32,7 +39,8 @@ data Target
   | AtIndex Int
   | Each
 
-type KeyValue = Tuple
+type KeyValue
+  = Tuple
 
 derive instance equalExpression :: Eq Expression
 
@@ -57,3 +65,7 @@ instance Show Target where
   show (Key k) = "\'" <> k <> "\'"
   show (AtIndex index) = "[" <> show index <> "]"
   show Each = "[]"
+
+-- Constructors (this is a work in progress and should be reconciled with Helpers.Expression)
+accessByKeyName :: String -> Expression
+accessByKeyName = Key >>> singleton >>> Accessor Input

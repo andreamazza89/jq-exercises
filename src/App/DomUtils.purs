@@ -1,22 +1,29 @@
 module App.DomUtils
   ( button
+  , container
   , errorMessage
   , h2
   , inputChanged
   , row
   , showJson
+  , showJsons
   , successMessage
-  )
-  where
+  , withMinHeight
+  , scrollJqInputIntoView
+  ) where
 
 import Prelude
 import Data.Maybe (fromMaybe)
+import Data.Unit
 import Effect (Effect)
 import React.Basic.DOM (css)
 import React.Basic.DOM as DOM
 import React.Basic.DOM.Events (capture, targetValue)
 import React.Basic.Events (EventHandler)
 import React.Basic.Hooks (JSX)
+import WebComponents.Markdown as Markdown
+
+foreign import scrollJqInputIntoView :: Effect Unit
 
 button :: String -> EventHandler -> JSX
 button text onClick =
@@ -24,6 +31,13 @@ button text onClick =
     { children: [ DOM.text text ]
     , className: "outline"
     , onClick
+    }
+
+container :: Array JSX -> JSX
+container children =
+  DOM.div
+    { className: "container"
+    , children
     }
 
 inputChanged :: forall action. (action -> Effect Unit) -> (String -> action) -> EventHandler
@@ -44,9 +58,20 @@ row items = DOM.div { className: "grid", children: items }
 textWithColor :: String -> String -> JSX
 textWithColor color text = DOM.h4 { children: [ DOM.text text ], style: (css { color }) }
 
-showJson :: String -> Array String -> JSX
-showJson label json =
+showJsons :: String -> Array String -> JSX
+showJsons label jsons =
   DOM.article_
     [ DOM.header_ [ DOM.text (label <> ":") ]
-    , DOM.ul_ $ map (\j -> DOM.li_ [ DOM.text j ]) json
+    , DOM.div_ $ map showJson jsons
     ]
+
+showJson :: String -> JSX
+showJson =
+  toJsonCodeBlock >>> Markdown.build 
+
+toJsonCodeBlock :: String -> String
+toJsonCodeBlock jsonString = "```json\n" <> jsonString <> "\n```"
+
+withMinHeight :: Int -> JSX -> JSX
+withMinHeight minHeight element =
+  DOM.div {children: [element], style: (DOM.css { minHeight: show minHeight <> "px" }) }

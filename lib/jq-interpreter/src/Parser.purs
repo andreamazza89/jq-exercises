@@ -4,20 +4,19 @@ module Parser
   ) where
 
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
 import Data.Array as Array
 import Data.Array.NonEmpty (fromFoldable) as NE
-import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Bifunctor (lmap)
+import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
 import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
-import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
+import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
@@ -25,15 +24,17 @@ import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (eof, satisfy)
 
 parse :: String -> Either String Expression
-parse input = runParser input parser
-  # lmap parseErrorMessage
+parse input =
+  runParser input parser
+    # lmap parseErrorMessage
 
 parser :: Parser String Expression
 parser = do
-  exp <- fix
-    ( \p ->
-        expressionParser $ parserConfig p allInfixParsers
-    )
+  exp <-
+    fix
+      ( \p ->
+          expressionParser $ parserConfig p allInfixParsers
+      )
   _ <- eof
   pure exp
 
@@ -78,10 +79,8 @@ objectValueParser p =
   in
     expressionParser (parserConfig p allInfixButComma)
 
-parenthesesParser :: Parser String Expression -> Parser String Expression 
-parenthesesParser =
-  inParentheses
-  
+parenthesesParser :: Parser String Expression -> Parser String Expression
+parenthesesParser = inParentheses
 
 literalParser :: Parser String Expression
 literalParser = do
@@ -103,16 +102,27 @@ arrayConstructorParser p = try emptyArray <|> try arrayWithItems
 
 objectConstructorParser :: Parser String Expression -> Parser String Expression
 objectConstructorParser p =
-  sepByCommas keyValueParser
+  sepByCommas (try keyValueParser <|> try shortHandParser)
     # inCurlies
     # map ObjectConstructor
   where
-  keyValueParser :: Parser String (KeyValuePair)
+  keyValueParser :: Parser String KeyValuePair
   keyValueParser = do
-    key <- p
+    key <- p <|> unquotedString
     _ <- colon
     value <- objectValueParser p
     pure $ Tuple key value
+
+  shortHandParser :: Parser String KeyValuePair
+  shortHandParser = do
+    identifier <- ident
+    pure $ Tuple (toStringLiteral identifier) (accessByKeyName identifier)
+
+  unquotedString :: Parser String Expression
+  unquotedString = map toStringLiteral ident
+
+  toStringLiteral :: String -> Expression
+  toStringLiteral = Json.buildString >>> Literal
 
 accessorParser :: Parser String Expression
 accessorParser = do

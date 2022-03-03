@@ -39,5 +39,5 @@ mkApp = do
     pure
       $ case state of
           Home -> home navigation
-          Exercise ex -> exercise ex
+          Exercise ex -> exercise { exercise: ex, navigation }
           AllExercises -> allExercises navigation
