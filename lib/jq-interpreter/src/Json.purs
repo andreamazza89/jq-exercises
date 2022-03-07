@@ -23,13 +23,12 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (drop, head, many)
-import Data.Array (fromFoldable, index, zip) as Array
+import Data.Array (many)
+import Data.Array (drop, fromFoldable, head, index, updateAt, zip) as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
-import Data.Functor (map)
 import Data.Map (Map)
 import Data.Map (alter, fromFoldable, lookup, keys, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -139,8 +138,8 @@ update [] newValue _ =
 update targets newValue json =
   let
     defaultTarget = Key "this will not happen as we catch the empty list above"
-    target = fromMaybe defaultTarget (head targets)
-    remainingTargets = drop 1 targets
+    target = fromMaybe defaultTarget (Array.head targets)
+    remainingTargets = Array.drop 1 targets
     targetNotFound = "could not find value for target"
   in do
     innerJson <- at target json
@@ -150,7 +149,11 @@ update targets newValue json =
 update_ :: Target -> Json -> Json -> Either String Json
 update_ (Key k) newValue (JObject obj) =
   Right $ JObject (Map.alter (\_ -> Just newValue) k obj)
-update_ _ _ _ = Left "cannot update this json"
+update_ (Index i) newValue (JArray arr) =
+  Array.updateAt i newValue arr
+    # map JArray
+    # note ("Cannot update. index: " <> show i <> ", array: " <> show arr)
+update_ _ _ _ = Left "this json cannot be updated with a target as it is neither an object nor an array"
 
 -- Parse
 parse :: String -> Either String Json

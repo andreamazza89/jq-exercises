@@ -1,6 +1,7 @@
 module Test.Json where
 
 import Helpers.Expression
+
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -8,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression, accessByKeyName)
 import Interpreter (run) as Interpreter
-import Json (key)
+import Json (index, key)
 import Json as Json
 import Prelude (Unit, discard, pure, unit, (+))
 import Test.Helpers.Json (num, str)
@@ -29,20 +30,7 @@ main = do
           """
           """42"""
           """42"""
-      it "replaces value in flat object" do
-        test [ key "pizza" ]
-          """
-              {
-                  "pizza": "Margherita"
-              }
-          """
-          """ "Salsiccia" """
-          """
-              {
-                  "pizza": "Salsiccia"
-              }
-          """
-      it "replaces value in nested object" do
+      it "replaces value in an object" do
         test [ key "pizza", key "name" ]
           """
               {
@@ -54,6 +42,38 @@ main = do
               {
                   "pizza": { "name": "Napoletana" }
               }
+          """
+      it "replaces value in an array" do
+        test [ index 1 ]
+          """
+              [
+                  "Panino",
+                  "Spanner"
+              ]
+              
+          """
+          """ "Lasagna" """
+          """
+              [
+                  "Panino",
+                  "Lasagna"
+              ]
+          """
+      it "replaces value using a mixed path" do
+        test [ index 1, key "food" ]
+          """
+              [
+                  {"food": "milk"},
+                  {"food": "bread"}
+              ]
+              
+          """
+          """ {"type": "bread", "weight": 42} """
+          """
+              [
+                  {"food": "milk"},
+                  {"food": {"type": "bread", "weight": 42}}
+              ]
           """
 
 test :: forall a. MonadThrow Error a => Json.Path -> String -> String -> String -> a Unit
