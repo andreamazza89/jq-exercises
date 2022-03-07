@@ -1,5 +1,6 @@
 module Helpers.Expression
-  ( (||)
+  ( (|=)
+  , (||)
   , (~)
   , accessAllItems
   , accessByIndex
@@ -17,6 +18,7 @@ module Helpers.Expression
   , literal
   , pipe
   , toNonEmpty
+  , update
   )
   where
 
@@ -74,9 +76,15 @@ identity = Identity
 pipe :: Expression -> Expression -> Expression
 pipe = Pipe
 
-infixl 6 pipe as ||
+infixl 2 pipe as ||
 
 comma :: Expression -> Expression -> Expression
 comma = Comma
 
-infixl 5 comma as ~
+infixl 3 comma as ~
+
+
+update :: Expression -> Expression -> Expression
+update = Update
+
+infixl 5 update as |=

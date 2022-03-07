@@ -51,7 +51,8 @@ parserConfig p infixToKeep =
       ]
 
     allInfix =
-      [ Tuple "pipe" $ infixLeft "|" 2 Pipe
+      [ Tuple "update" $ infixLeft "|=" 5 Update
+      , Tuple "pipe" $ infixLeft "|" 2 Pipe
       , Tuple "comma" $ infixLeft "," 3 Comma
       ]
   in
@@ -64,7 +65,8 @@ parserConfig p infixToKeep =
 
 allInfixParsers :: Array String
 allInfixParsers =
-  [ "pipe"
+  [ "update"
+  , "pipe"
   , "comma"
   ]
 

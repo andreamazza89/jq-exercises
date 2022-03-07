@@ -99,6 +99,9 @@ main = do
         testParser ". | 42 , ." $ identity || ((literal (num 42.0)) ~ identity)
       it "parentheses override precedence" do
         testParser "(. | 42) , ." $ (identity || (literal (num 42.0))) ~ identity
+    describe "Assignment" do
+      it "update assignment" do
+        testParser ". |= ." $ identity |= identity
     describe "Miscellaneous" do
       it "spurious character after a valid expression are not allowed" do
         testFailure ". | . ~~~~~~~~"

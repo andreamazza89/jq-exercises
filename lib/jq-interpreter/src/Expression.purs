@@ -13,7 +13,7 @@ import Data.Maybe (Maybe)
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
-import Prelude (class Eq, class Show, show, (<>), (>>>), ($))
+import Prelude (class Eq, class Show, show, (<>), (>>>))
 
 data Expression
   = Identity
@@ -23,6 +23,7 @@ data Expression
   | ObjectConstructor (Array KeyValuePair)
   | Pipe Expression Expression
   | Comma Expression Expression
+  | Update Expression Expression
 
 type KeyValuePair
   = Tuple Expression Expression
@@ -57,6 +58,7 @@ instance Show Expression where
   show (Accessor Input path) = "." <> joinPath path
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path
   show (Comma l r) = show l <> " , " <> show r
+  show (Update l r) = show l <> " |= " <> show r
 
 joinPath :: Path -> String
 joinPath path = joinWith "." (map show (toArray path))

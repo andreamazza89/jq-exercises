@@ -45,13 +45,14 @@ run (Comma l r) input = do
   pure $ lExp <> rExp
 
 run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
-run (ObjectConstructor keyValuePairs) input =
-  expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
+
+run (ObjectConstructor keyValuePairs) input = expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
+
+run _ _ = Left "TODO - update assignment"
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =
   -- Would love to find a way to do this that's easier to grasp, but until then, here's an attempt at explaining:
-
   -- we start with an array of expressions for all key-values, like so:
   --    `[(K1exp, V1exp), (K2exp, V2exp), ...]`
   -- in the expand phase, we run the interpreter for each expression (using symbols to represent json)

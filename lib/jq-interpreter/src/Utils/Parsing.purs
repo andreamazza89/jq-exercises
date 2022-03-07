@@ -2,7 +2,7 @@ module Utils.Parsing where
 
 import Control.Alt ((<|>))
 import Data.Array (fromFoldable) as Array
-import Data.CodePoint.Unicode (isAlpha, isAlphaNum, isDecDigit)
+import Data.CodePoint.Unicode (isAlpha, isDecDigit)
 import Data.Foldable as Foldable
 import Data.Int (fromString) as Int
 import Data.List.NonEmpty (NonEmptyList)
