@@ -1,6 +1,7 @@
 module Test.Interpreter where
 
 import Helpers.Expression
+
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -163,25 +164,52 @@ main = do
           [ "\"ciao\"" ]
     describe "Assignment" do
       describe "update assignment (|=)" do
-        it "identity update" do
+        it "simplest" do
           test (identity |= identity)
             """
               42
             """
             [ "42.0" ]
-        -- it "literal update" do
-        --   test (accessByKeyNames [ "pizza" ] |= (literal (str "Margherita")))
-        --     """
-        --       {
-        --         "pizza": "Alla Diavola"
-        --       }
-        --     """
-        --     [ """
-        --       {
-        --         "pizza": "Margherita"
-        --       }
-        --     """
-        --     ]
+        it "using literal" do
+          test (accessByKeyNames [ "pizza" ] |= (literal (str "Margherita")))
+            """
+              {
+                "pizza": "Alla Diavola"
+              }
+            """
+            [ """
+              {
+                "pizza": "Margherita"
+              }
+            """
+            ]
+        it "using expression" do
+          test (accessByKeyNames [ "pizza" ] |= accessByIndex [ 1 ])
+            """
+              {
+                "pizza": ["Alla Diavola", "Capricciosa"]
+              }
+            """
+            [ """
+              {
+                "pizza": "Capricciosa"
+              }
+            """
+            ]
+        it "only picks the first json value if the right hand side returns more than one" do
+          test (accessByKeyNames [ "pizza" ] |= accessAllItems)
+            """
+              {
+                "pizza": ["Alla Diavola", "Capricciosa"]
+              }
+            """
+            [ """
+              {
+                "pizza": "Alla Diavola"
+              }
+            """
+            ]
+
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of

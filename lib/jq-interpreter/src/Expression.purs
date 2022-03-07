@@ -1,19 +1,24 @@
 module Expression
   ( Expression(..)
+  , KeyValuePair(..)
   , Over(..)
   , Path
   , Target(..)
-  , KeyValuePair(..)
   , accessByKeyName
-  ) where
+  , toJsonPath
+  )
+  where
 
-import Data.Array.NonEmpty (NonEmptyArray, singleton, toArray)
+import Prelude
+
+import Data.Array.NonEmpty (NonEmptyArray, catMaybes, singleton, toArray)
+import Data.Either (Either(..))
 import Data.Functor (map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
-import Prelude (class Eq, class Show, show, (<>), (>>>))
+import Json (Path, Target, key, index) as Json
 
 data Expression
   = Identity
@@ -40,8 +45,23 @@ data Target
   | AtIndex Int
   | Each
 
-type KeyValue
-  = Tuple
+-- Turning an expression into a Json path
+toJsonPath :: Expression -> Either String Json.Path
+toJsonPath Identity =
+  Right []
+toJsonPath (Accessor Input path) =
+  map toJsonTarget path
+    # catMaybes
+    # Right
+toJsonPath exp =
+  Left ("expression cannot be used to access a json value: " <> show exp)
+
+toJsonTarget :: Target -> Maybe Json.Target
+toJsonTarget (Key k) = Just (Json.key k)
+toJsonTarget (AtIndex i) = Just (Json.index i)
+toJsonTarget _ = Nothing
+
+-- Show
 
 derive instance equalExpression :: Eq Expression
 

@@ -2,15 +2,28 @@ module Interpreter (run) where
 
 import Data.Array (concat)
 import Data.Array as Array
-import Data.Either (Either(..))
+import Data.Either (Either(..), note)
 import Data.Foldable (foldl)
 import Data.Functor (map)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import Expression (Expression(..), Target(..), KeyValuePair)
+import Expression (Expression(..), Target(..), KeyValuePair, toJsonPath)
 import Json (Json)
-import Json (atIndex, atKey, buildArray, buildObject, emptyArray, emptyObject, values) as Json
+import Json
+  ( Path
+  , Target
+  , atIndex
+  , atKey
+  , buildArray
+  , buildObject
+  , emptyArray
+  , emptyObject
+  , key
+  , update
+  , values
+  )
+  as Json
 import Prelude (bind, pure, (#), ($), (<$>), (<*>), (<>), (>>=), (>>>))
 
 type Input
@@ -40,27 +53,20 @@ run (ArrayConstructor expression) input = maybe emptyArray construct expression
   emptyArray = Right [ Json.emptyArray ]
 
 run (Comma l r) input = do
-  lExp <- run l input
-  rExp <- run r input
-  pure $ lExp <> rExp
+  lOutput <- run l input
+  rOutput <- run r input
+  pure $ lOutput <> rOutput
 
 run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
 
 run (ObjectConstructor keyValuePairs) input = expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
 
-run (Update l r) input = Right input
-
--- for each JSON in the input array:
--- access using the l expression
--- *** l must be some kind of accessor expression ***, can we enforce that?
--- feed the output into r. If multiple json, just slap into a json array
--- take the output of r, replace in the original input where l is ???
-
-
--- feels like it's just a lens over the JSON input: in English
---                                                     - gimme a way to GET the thing you wanna update, 
---                                                     - gimme a function that outputs JSON given the thing you wanna update, 
---                                                     - I'll replace the thing you wanted to update with the result of the second function 
+run (Update l r) input = do
+  lOutput <- run l input
+  rOutput <- run r lOutput
+  newValue <- note "right hand side of an update assignment must return at least one value" (Array.head rOutput)
+  jsonPath <- toJsonPath l
+  traverse (Json.update jsonPath newValue) input
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =
