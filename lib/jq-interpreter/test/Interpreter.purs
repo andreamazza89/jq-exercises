@@ -12,7 +12,7 @@ import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard, pure, unit)
 import Test.Helpers.Json (num, str)
-import Test.Spec (Spec, describe, it)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Parsing.Parser (runParser)
 
@@ -206,6 +206,21 @@ main = do
             [ """
               {
                 "pizza": "Alla Diavola"
+              }
+            """
+            ]
+        it "runs multiple updates if the left hand side returns multiple paths" do
+          test ((accessByKeyNames ["pizza"] ~ accessByKeyNames ["lasagna"]) |= literal (str "great"))
+            """
+              {
+                "pizza": "average",
+                "lasagna": "mediocre"
+              }
+            """
+            [ """
+              {
+                "pizza": "great",
+                "lasagna": "great"
               }
             """
             ]

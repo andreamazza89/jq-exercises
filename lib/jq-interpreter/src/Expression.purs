@@ -5,15 +5,15 @@ module Expression
   , Path
   , Target(..)
   , accessByKeyName
-  , toJsonPath
+  , toJsonPaths
   )
   where
 
 import Prelude
 
+import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray, catMaybes, singleton, toArray)
 import Data.Either (Either(..))
-import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
@@ -46,14 +46,22 @@ data Target
   | Each
 
 -- Turning an expression into a Json path
-toJsonPath :: Expression -> Either String Json.Path
-toJsonPath Identity =
+toJsonPaths :: Expression -> Either String (Array Json.Path)
+toJsonPaths Identity =
   Right []
-toJsonPath (Accessor Input path) =
+
+toJsonPaths (Accessor Input path) =
   map toJsonTarget path
     # catMaybes
+    # Array.singleton
     # Right
-toJsonPath exp =
+
+toJsonPaths (Comma l r) = do
+  lPaths <- toJsonPaths l
+  rPaths <- toJsonPaths r
+  pure (lPaths <> rPaths)
+  
+toJsonPaths exp =
   Left ("expression cannot be used to access a json value: " <> show exp)
 
 toJsonTarget :: Target -> Maybe Json.Target

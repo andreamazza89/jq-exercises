@@ -4,6 +4,7 @@
   , "arrays"
   , "bifunctors"
   , "control"
+  , "debug"
   , "effect"
   , "either"
   , "exceptions"

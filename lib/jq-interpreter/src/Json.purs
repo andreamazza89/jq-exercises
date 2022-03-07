@@ -4,6 +4,7 @@ module Json
   , Target
   , atIndex
   , atKey
+  , atPath
   , buildArray
   , buildObject
   , buildString
@@ -16,7 +17,8 @@ module Json
   , serialise
   , update
   , values
-  ) where
+  )
+  where
 
 import Prelude
 import Utils.Parsing
@@ -92,6 +94,18 @@ at (Index i) json =
   atIndex i json
     # note ("Could not find item with index" <> show i <> " in given array: " <> show json)
 
+atPath :: Path -> Json -> Either String Json
+atPath [] json =
+  Right json
+atPath targets json =
+  let
+    defaultTarget = Key "this will not happen as we catch the empty list above"
+    target = fromMaybe defaultTarget (Array.head targets)
+    remainingTargets = Array.drop 1 targets
+  in do
+  innerJson <- at target json
+  atPath remainingTargets innerJson
+
 atKey :: String -> Json -> Maybe Json
 atKey k (JObject object) =
   Map.lookup k object
@@ -140,7 +154,6 @@ update targets newValue json =
     defaultTarget = Key "this will not happen as we catch the empty list above"
     target = fromMaybe defaultTarget (Array.head targets)
     remainingTargets = Array.drop 1 targets
-    targetNotFound = "could not find value for target"
   in do
     innerJson <- at target json
     val <- update remainingTargets newValue innerJson
