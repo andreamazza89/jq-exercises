@@ -6,7 +6,7 @@ import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Expression (Expression)
+import Expression (Expression, accessByKeyName)
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard, pure, unit)
@@ -161,6 +161,27 @@ main = do
             ["ciao", "miao"]
           """
           [ "\"ciao\"" ]
+    describe "Assignment" do
+      describe "update assignment (|=)" do
+        it "identity update" do
+          test (identity |= identity)
+            """
+              42
+            """
+            [ "42.0" ]
+        -- it "literal update" do
+        --   test (accessByKeyNames [ "pizza" ] |= (literal (str "Margherita")))
+        --     """
+        --       {
+        --         "pizza": "Alla Diavola"
+        --       }
+        --     """
+        --     [ """
+        --       {
+        --         "pizza": "Margherita"
+        --       }
+        --     """
+        --     ]
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of

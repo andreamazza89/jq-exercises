@@ -48,7 +48,19 @@ run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
 
 run (ObjectConstructor keyValuePairs) input = expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
 
-run _ _ = Left "TODO - update assignment"
+run (Update l r) input = Right input
+
+-- for each JSON in the input array:
+-- access using the l expression
+-- *** l must be some kind of accessor expression ***, can we enforce that?
+-- feed the output into r. If multiple json, just slap into a json array
+-- take the output of r, replace in the original input where l is ???
+
+
+-- feels like it's just a lens over the JSON input: in English
+--                                                     - gimme a way to GET the thing you wanna update, 
+--                                                     - gimme a function that outputs JSON given the thing you wanna update, 
+--                                                     - I'll replace the thing you wanted to update with the result of the second function 
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =
