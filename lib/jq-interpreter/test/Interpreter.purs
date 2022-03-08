@@ -6,12 +6,12 @@ import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Expression (Expression, accessByKeyName)
+import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
 import Prelude (Unit, discard, pure, unit)
 import Test.Helpers.Json (num, str)
-import Test.Spec (Spec, describe, it, itOnly)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Parsing.Parser (runParser)
 

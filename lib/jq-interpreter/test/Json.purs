@@ -1,21 +1,14 @@
 module Test.Json where
 
-import Helpers.Expression
+import Prelude
 
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Expression (Expression, accessByKeyName)
-import Interpreter (run) as Interpreter
 import Json (index, key, everyItem)
 import Json as Json
-import Prelude (Unit, discard, pure, unit, (+))
-import Test.Helpers.Json (num, str)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
-import Text.Parsing.Parser (runParser)
 
 main :: Spec Unit
 main = do

@@ -2,8 +2,6 @@ module Json
   ( Json(..)
   , Path
   , Target
-  , atIndex
-  , atKey
   , atPath
   , buildArray
   , buildObject
@@ -18,7 +16,8 @@ module Json
   , serialise
   , update
   , values
-  ) where
+  )
+  where
 
 import Prelude
 import Utils.Parsing
@@ -85,7 +84,6 @@ buildString :: String -> Json
 buildString = JString
 
 -- Read
--- TODO - update the Interpreter to just use at instead of the more specific atKey/atIndex
 at :: Target -> Json -> Either String (Array Json)
 at (Key k) json =
   atKey k json
