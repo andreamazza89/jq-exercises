@@ -1,6 +1,7 @@
 module Interpreter (run) where
 
 import Prelude
+
 import Data.Array (concat)
 import Data.Array as Array
 import Data.Either (Either(..), note)
@@ -9,7 +10,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Expression (Expression(..), Target(..), KeyValuePair, toJsonPaths)
-import Json (Json, atPath, key)
+import Json (Json(..), atPath, key)
 import Json (Path, atIndex, atKey, atPath, buildArray, buildObject, emptyArray, emptyObject, update, values) as Json
 
 type Input
@@ -57,10 +58,7 @@ runUpdates :: Array Json.Path -> Expression -> Json -> Either String Json
 runUpdates paths rExp input = foldl runUpdate (pure input) paths
   where
   runUpdate updatedJson path = do
-    innerJson <- Json.atPath path input
-    rOutput <- run rExp [ innerJson ]
-    newValue <- note "right hand side of an update must return at least one value" (Array.head rOutput)
-    updatedJson >>= Json.update path newValue
+    updatedJson >>= Json.update path (\j ->  map (Array.head >>> fromMaybe JNull) (run rExp [j]))
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =

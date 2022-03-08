@@ -1,7 +1,6 @@
 module Test.Interpreter where
 
 import Helpers.Expression
-
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
@@ -210,7 +209,7 @@ main = do
             """
             ]
         it "runs multiple updates if the left hand side returns multiple paths" do
-          test ((accessByKeyNames ["pizza"] ~ accessByKeyNames ["lasagna"]) |= literal (str "great"))
+          test ((accessByKeyNames [ "pizza" ] ~ accessByKeyNames [ "lasagna" ]) |= literal (str "great"))
             """
               {
                 "pizza": "average",
@@ -224,7 +223,34 @@ main = do
               }
             """
             ]
-
+        it "runs multiple updates if the left hand side iterates all items (object example)" do
+          test (accessAllItems |= literal (str "great"))
+            """
+              {
+                "pizza": "average",
+                "lasagna": "mediocre"
+              }
+            """
+            [ """
+              {
+                "pizza": "great",
+                "lasagna": "great"
+              }
+            """
+            ]
+        it "runs multiple updates if the left hand side iterates all items (array example)" do
+          test (accessor [ atKey "pizza", allItems ] |= accessByKeyNames ["tag"])
+            """
+              {
+                "pizza": [{"tag": "food"}, {"tag": "italian"}]
+              }
+            """
+            [ """
+              {
+                "pizza": ["food", "italian"]
+              }
+            """
+            ]
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of

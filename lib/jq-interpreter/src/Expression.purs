@@ -12,13 +12,13 @@ module Expression
 import Prelude
 
 import Data.Array as Array
-import Data.Array.NonEmpty (NonEmptyArray, catMaybes, singleton, toArray)
+import Data.Array.NonEmpty (NonEmptyArray, singleton, toArray)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
-import Json (Path, Target, key, index) as Json
+import Json (Path, Target, key, everyItem, index) as Json
 
 data Expression
   = Identity
@@ -52,7 +52,7 @@ toJsonPaths Identity =
 
 toJsonPaths (Accessor Input path) =
   map toJsonTarget path
-    # catMaybes
+    # Array.fromFoldable
     # Array.singleton
     # Right
 
@@ -64,10 +64,10 @@ toJsonPaths (Comma l r) = do
 toJsonPaths exp =
   Left ("expression cannot be used to access a json value: " <> show exp)
 
-toJsonTarget :: Target -> Maybe Json.Target
-toJsonTarget (Key k) = Just (Json.key k)
-toJsonTarget (AtIndex i) = Just (Json.index i)
-toJsonTarget _ = Nothing
+toJsonTarget :: Target -> Json.Target
+toJsonTarget (Key k) = Json.key k
+toJsonTarget (AtIndex i) = Json.index i
+toJsonTarget Each = Json.everyItem
 
 -- Show
 

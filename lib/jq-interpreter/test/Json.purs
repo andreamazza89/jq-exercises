@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression, accessByKeyName)
 import Interpreter (run) as Interpreter
-import Json (index, key)
+import Json (index, key, everyItem)
 import Json as Json
 import Prelude (Unit, discard, pure, unit, (+))
 import Test.Helpers.Json (num, str)
@@ -75,8 +75,24 @@ main = do
                   {"food": {"type": "bread", "weight": 42}}
               ]
           """
+      it "updates all object values (sorted by key)" do
+        test [ everyItem ]
+          """
+            {
+              "zz": "bread",
+              "aa": "pasta"
+            }
+          """
+          """ "lol" """
+          """
+            {
+              "zz": "lol",
+              "aa": "lol"
+            }
+          """
+
 
 test :: forall a. MonadThrow Error a => Json.Path -> String -> String -> String -> a Unit
 test path json newValue expected = case [ Json.parse json, Json.parse newValue, Json.parse expected ] of
-  [ Right json', Right newValue', Right expected' ] -> Json.update path newValue' json' `shouldEqual` Right expected'
+  [ Right json', Right newValue', Right expected' ] -> Json.update path (\_ -> pure newValue') json' `shouldEqual` Right expected'
   _ -> fail "Json test definition failed to parse"
