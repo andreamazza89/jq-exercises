@@ -58,9 +58,8 @@ runUpdates paths rExp input = foldl runUpdate (pure input) paths
   where
   runUpdate updatedJson path = do
     innerJson <- Json.atPath path input
-    rOutput <- run rExp [ innerJson ]
-    newValue <- note "right hand side of an update must return at least one value" (Array.head rOutput)
-    updatedJson >>= Json.update path newValue
+    rOutput <- run rExp innerJson
+    updatedJson >>= Json.update path rOutput
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =

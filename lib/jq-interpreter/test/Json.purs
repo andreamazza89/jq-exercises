@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Expression (Expression, accessByKeyName)
 import Interpreter (run) as Interpreter
-import Json (index, key)
+import Json (index, everyItem, key)
 import Json as Json
 import Prelude (Unit, discard, pure, unit, (+))
 import Test.Helpers.Json (num, str)
@@ -20,31 +20,69 @@ import Text.Parsing.Parser (runParser)
 main :: Spec Unit
 main = do
   describe "Json" do
+    describe "Reads" do
+      it "an empty path refers to the whole json structure" do
+        testRead []
+          """ 42 """
+          [ """ 42 """ ]
+      it "reads at the specified key" do
+        testRead [key "pizza"]
+          """
+            {
+                "pizza": "Margherita"
+            }
+          """
+          [ """ "Margherita" """ ]
+      it "reads at the specified index" do
+        testRead [index 1]
+          """
+            [ "Salsiccia",
+              "Patate"
+            ]
+          """
+          [ """ "Patate" """ ]
+      it "reads all object values (sorted by key)" do
+        testRead [ everyItem ]
+          """
+            {
+              "zz": "second value",
+              "aa": "first value"
+            }
+          """
+          [ """ "first value" """, """ "second value" """ ]
+      it "mixed access" do
+        testRead [key "pizza", index 1]
+          """
+            {
+                "pizza": [ "Salsiccia", "Patate" ]
+            }
+          """
+          [ """ "Patate" """ ]
     describe "Updates" do
       it "an empty path refers to the whole json structure" do
-        test []
+        testUpdate []
           """
             {
                 "iLove": "bread"
             }
           """
-          """42"""
+          ["""42"""]
           """42"""
       it "replaces value in an object" do
-        test [ key "pizza", key "name" ]
+        testUpdate [ key "pizza", key "name" ]
           """
               {
                   "pizza": { "name": "Bianca" }
               }
           """
-          """ "Napoletana" """
+          [""" "Napoletana" """]
           """
               {
                   "pizza": { "name": "Napoletana" }
               }
           """
       it "replaces value in an array" do
-        test [ index 1 ]
+        testUpdate [ index 1 ]
           """
               [
                   "Panino",
@@ -52,7 +90,7 @@ main = do
               ]
               
           """
-          """ "Lasagna" """
+          [""" "Lasagna" """]
           """
               [
                   "Panino",
@@ -60,7 +98,7 @@ main = do
               ]
           """
       it "replaces value using a mixed path" do
-        test [ index 1, key "food" ]
+        testUpdate [ index 1, key "food" ]
           """
               [
                   {"food": "milk"},
@@ -68,7 +106,7 @@ main = do
               ]
               
           """
-          """ {"type": "bread", "weight": 42} """
+          [""" {"type": "bread", "weight": 42} """]
           """
               [
                   {"food": "milk"},
@@ -76,7 +114,12 @@ main = do
               ]
           """
 
-test :: forall a. MonadThrow Error a => Json.Path -> String -> String -> String -> a Unit
-test path json newValue expected = case [ Json.parse json, Json.parse newValue, Json.parse expected ] of
-  [ Right json', Right newValue', Right expected' ] -> Json.update path newValue' json' `shouldEqual` Right expected'
+testUpdate :: forall a. MonadThrow Error a => Json.Path -> String -> Array String -> String -> a Unit
+testUpdate path json newValues expected = case { j: Json.parse json, new: traverse Json.parse newValues, exp: Json.parse expected} of
+  {j: (Right json'), new: (Right newValues'), exp: (Right expected')} -> Json.update path newValues' json' `shouldEqual` Right expected'
+  _ -> fail "Json test definition failed to parse"
+
+testRead :: forall a. MonadThrow Error a => Json.Path -> String -> Array String -> a Unit
+testRead path json expected = case (Tuple (Json.parse json) (traverse Json.parse expected)) of
+  Tuple (Right json') (Right expected') -> Json.atPath path json' `shouldEqual` Right expected'
   _ -> fail "Json test definition failed to parse"

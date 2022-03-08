@@ -10,6 +10,7 @@ module Json
   , buildString
   , emptyArray
   , emptyObject
+  , everyItem
   , index
   , key
   , parse
@@ -25,14 +26,14 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
+import Data.Array (concat, drop, fromFoldable, head, index, singleton, updateAt, zip) as Array
 import Data.Array (many)
-import Data.Array (drop, fromFoldable, head, index, updateAt, zip) as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
 import Data.Foldable (class Foldable)
 import Data.Foldable as Foldable
 import Data.Map (Map)
-import Data.Map (alter, fromFoldable, lookup, keys, values) as Map
+import Data.Map (alter, fromFoldable, keys, lookup, values) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString) as Number
 import Data.String as String
@@ -86,25 +87,36 @@ buildString = JString
 
 -- Read
 -- TODO - update the Interpreter to just use at instead of the more specific atKey/atIndex
-at :: Target -> Json -> Either String Json
+at :: Target -> Json -> Either String (Array Json)
 at (Key k) json =
   atKey k json
+    # map Array.singleton
     # note ("Could not find key named " <> k <> " in given json object: " <> show json)
 at (Index i) json =
   atIndex i json
+    # map Array.singleton
     # note ("Could not find item with index" <> show i <> " in given array: " <> show json)
+at EveryItem (JObject map) =
+  Map.values map
+    # Array.fromFoldable
+    # pure
+at EveryItem (JArray arr) =
+  pure (arr)
+at EveryItem json =
+  Left ("Invalid json access pattern: you are trying to access all items against this json: " <> show json)
 
-atPath :: Path -> Json -> Either String Json
+atPath :: Path -> Json -> Either String (Array Json)
 atPath [] json =
-  Right json
+  Right [json]
 atPath targets json =
   let
     defaultTarget = Key "this will not happen as we catch the empty list above"
     target = fromMaybe defaultTarget (Array.head targets)
     remainingTargets = Array.drop 1 targets
   in do
-  innerJson <- at target json
-  atPath remainingTargets innerJson
+  innerJsons <- at target json
+  traverse (atPath remainingTargets) innerJsons
+    # map Array.concat
 
 atKey :: String -> Json -> Maybe Json
 atKey k (JObject object) =
@@ -139,6 +151,7 @@ type Path
 data Target
   = Key String
   | Index Int
+  | EveryItem
 
 key :: String -> Target
 key = Key
@@ -146,23 +159,26 @@ key = Key
 index :: Int -> Target
 index = Index
 
-update :: Path -> Json -> Json -> Either String Json
-update [] newValue _ =
-  Right newValue
-update targets newValue json =
+everyItem :: Target
+everyItem = EveryItem
+
+update :: Path -> Array Json -> Json -> Either String Json
+update [] newValues _ =
+  note "must have at least one value" $ Array.head newValues
+update targets newValues json =
   let
     defaultTarget = Key "this will not happen as we catch the empty list above"
     target = fromMaybe defaultTarget (Array.head targets)
     remainingTargets = Array.drop 1 targets
   in do
-    innerJson <- at target json
-    val <- update remainingTargets newValue innerJson
-    update_ target val json
+    innerJsons <- at target json
+    vals <- traverse (update remainingTargets newValues) innerJsons
+    update_ target vals json
 
-update_ :: Target -> Json -> Json -> Either String Json
-update_ (Key k) newValue (JObject obj) =
+update_ :: Target -> Array Json -> Json -> Either String Json
+update_ (Key k) [newValue] (JObject obj) =
   Right $ JObject (Map.alter (\_ -> Just newValue) k obj)
-update_ (Index i) newValue (JArray arr) =
+update_ (Index i) [newValue] (JArray arr) =
   Array.updateAt i newValue arr
     # map JArray
     # note ("Cannot update. index: " <> show i <> ", array: " <> show arr)
