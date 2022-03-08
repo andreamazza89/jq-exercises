@@ -18,15 +18,14 @@ module Json
   , serialise
   , update
   , values
-  )
-  where
+  ) where
 
 import Prelude
 import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (concat, drop, fromFoldable, head, index, singleton, updateAt, zip) as Array
+import Data.Array (concat, fromFoldable, head, index, singleton, tail, updateAt, zip) as Array
 import Data.Array (many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
@@ -92,31 +91,30 @@ at (Key k) json =
   atKey k json
     # map Array.singleton
     # note ("Could not find key named " <> k <> " in given json object: " <> show json)
+
 at (Index i) json =
   atIndex i json
     # map Array.singleton
     # note ("Could not find item with index" <> show i <> " in given array: " <> show json)
+
 at EveryItem (JObject obj) =
   Map.values obj
     # Array.fromFoldable
     # pure
-at EveryItem (JArray arr) =
-  pure arr
-at EveryItem json =
-  Left ("Cannot access every item on json: " <> show json)
+
+at EveryItem (JArray arr) = pure arr
+
+at EveryItem json = Left ("Cannot access every item on json: " <> show json)
 
 atPath :: Path -> Json -> Either String (Array Json)
-atPath [] json =
-  Right [json]
-atPath targets json =
-  let
-    defaultTarget = Key "this will not happen as we catch the empty list above"
-    target = fromMaybe defaultTarget (Array.head targets)
-    remainingTargets = Array.drop 1 targets
-  in do
+atPath [] json = Right [ json ]
+
+atPath targets json = do
   innerJson <- at target json
   traverse (atPath remainingTargets) innerJson
     # map Array.concat
+  where
+  Tuple target remainingTargets = headAndTail targets
 
 atKey :: String -> Json -> Maybe Json
 atKey k (JObject object) =
@@ -163,39 +161,46 @@ everyItem :: Target
 everyItem = EveryItem
 
 update :: Path -> (Json -> Either String Json) -> Json -> Either String Json
-update [] toNewValue json =
-  toNewValue json
-update targets toNewValue json =
-  let
-    defaultTarget = Key "this will not happen as we catch the empty list above"
-    target = fromMaybe defaultTarget (Array.head targets)
-    remainingTargets = Array.drop 1 targets
-  in do
-    update_ target (\val -> update remainingTargets toNewValue val) json
+update [] toNewValue json = toNewValue json
+
+update targets toNewValue json = do
+  update_ target (update remainingTargets toNewValue) json
+  where
+  Tuple target remainingTargets = headAndTail targets
 
 update_ :: Target -> (Json -> Either String Json) -> Json -> Either String Json
 update_ (Key k) toNewValue (JObject obj) = do
-  newValue <- Map.lookup k obj
-    # fromMaybe JNull
-    # toNewValue
-  pure (JObject (Map.alter (\_ -> Just newValue) k obj))
+  newValue <-
+    Map.lookup k obj
+      # fromMaybe JNull
+      # toNewValue
+  Map.alter (const (Just newValue)) k obj
+    # JObject
+    # pure
+
 update_ (Index i) toNewValue (JArray arr) = do
-  newValue <- Array.index arr i
-            # fromMaybe JNull
-            # toNewValue
+  newValue <-
+    Array.index arr i
+      # fromMaybe JNull
+      # toNewValue
   Array.updateAt i newValue arr
     # map JArray
     # note ("Cannot update. index: " <> show i <> ", array: " <> show arr)
+
 update_ EveryItem toNewValue (JObject obj) = do
-  newValues <- traverse toNewValue (Map.values obj)
-  Map.fromFoldable (Array.zip (Array.fromFoldable (Map.keys obj)) (Array.fromFoldable newValues))
+  newValues <-
+    traverse toNewValue (Map.values obj)
+      # map Array.fromFoldable
+  Map.fromFoldable (Array.zip ks newValues)
     # JObject
     # pure
+  where
+    ks = Array.fromFoldable (Map.keys obj)
 
 update_ EveryItem toNewValue (JArray arr) = do
   newValues <- traverse toNewValue arr
   pure (JArray newValues)
-  
+
 update_ _ _ json = Left ("this json cannot be updated with a target as it is neither an object nor an array: " <> show json)
 
 -- Parse
@@ -295,3 +300,14 @@ toTupleArray map =
 -- Helpers
 chrsToString :: forall f. Foldable f => f Char -> String
 chrsToString = Foldable.foldMap singleton
+
+-- This function is for ergonomics: purescript does not support pattern matching on an array like (head:tail),
+-- so it is to be only used when certain that the array it deals with is not empty.
+headAndTail :: Array Target -> Tuple Target (Array Target)
+headAndTail arr = Tuple head tail
+  where
+  head = fromMaybe default (Array.head arr)
+
+  tail = fromMaybe [] (Array.tail arr)
+
+  default = Key "Error - was expecting a non-empty list"

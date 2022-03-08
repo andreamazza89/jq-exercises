@@ -239,7 +239,7 @@ main = do
             """
             ]
         it "runs multiple updates if the left hand side iterates all items (array example)" do
-          test (accessor [ atKey "pizza", allItems ] |= accessByKeyNames ["tag"])
+          test (accessor [ atKey "pizza", allItems ] |= accessByKeyNames [ "tag" ])
             """
               {
                 "pizza": [{"tag": "food"}, {"tag": "italian"}]
@@ -248,6 +248,17 @@ main = do
             [ """
               {
                 "pizza": ["food", "italian"]
+              }
+            """
+            ]
+        it "creates a new key if not existing in the input object" do
+          test (accessByKeyNames [ "pizza" ] |= literal (str "nice"))
+            """
+              { }
+            """
+            [ """
+              {
+                "pizza": "nice"
               }
             """
             ]
