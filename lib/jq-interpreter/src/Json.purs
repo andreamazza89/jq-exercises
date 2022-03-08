@@ -25,7 +25,7 @@ import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (concat, fromFoldable, head, index, singleton, tail, updateAt, zip) as Array
+import Data.Array (concat, fromFoldable, head, index,length, replicate, singleton, tail, updateAt, zip) as Array
 import Data.Array (many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
@@ -180,12 +180,19 @@ update_ (Key k) toNewValue (JObject obj) = do
 
 update_ (Index i) toNewValue (JArray arr) = do
   newValue <-
-    Array.index arr i
+    Array.index paddedArray i
       # fromMaybe JNull
       # toNewValue
-  Array.updateAt i newValue arr
+  Array.updateAt i newValue paddedArray
     # map JArray
     # note ("Cannot update. index: " <> show i <> ", array: " <> show arr)
+  where
+    arrLength = Array.length arr
+    paddedArray =
+      if arrLength > i then
+        arr
+      else
+        arr <> (Array.replicate (i + 1 - arrLength) JNull)
 
 update_ EveryItem toNewValue (JObject obj) = do
   newValues <-

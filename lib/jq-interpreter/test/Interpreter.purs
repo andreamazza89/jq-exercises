@@ -262,6 +262,19 @@ main = do
               }
             """
             ]
+        it "pads the array with nulls when trying to access a non-existing item" do
+          test (accessByIndex [ 2 ] |= literal (str "cheese"))
+            """
+              [ "Emmental" ]
+            """
+            [ """
+              [
+                "Emmental",
+                null,
+                "cheese"
+              ]
+            """
+            ]
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of
