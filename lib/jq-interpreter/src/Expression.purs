@@ -5,6 +5,7 @@ module Expression
   , Path
   , Target(..)
   , accessByKeyName
+  , toJsonPath
   , toJsonPaths
   )
   where
@@ -51,8 +52,7 @@ toJsonPaths Identity =
   Right []
 
 toJsonPaths (Accessor Input path) =
-  map toJsonTarget path
-    # Array.fromFoldable
+  toJsonPath path
     # Array.singleton
     # Right
 
@@ -63,6 +63,10 @@ toJsonPaths (Comma l r) = do
   
 toJsonPaths exp =
   Left ("expression cannot be used to access a json value: " <> show exp)
+
+toJsonPath path =
+  map toJsonTarget path
+      # Array.fromFoldable
 
 toJsonTarget :: Target -> Json.Target
 toJsonTarget (Key k) = Json.key k

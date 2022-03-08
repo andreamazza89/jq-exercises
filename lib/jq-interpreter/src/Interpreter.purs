@@ -8,7 +8,7 @@ import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
-import Expression (Expression(..), Target(..), KeyValuePair, toJsonPaths)
+import Expression (Expression(..), Target(..), KeyValuePair, toJsonPaths, toJsonPath)
 import Json (Json(..), atPath, key)
 import Json (Path, atIndex, atKey, atPath, buildArray, buildObject, emptyArray, emptyObject, update, values) as Json
 
@@ -22,8 +22,10 @@ run :: Expression -> Input -> Either String Output
 run Identity input = Right input
 
 run (Accessor _ path) input =
-  foldl accessor (Just input) path
-    # toEither
+  traverse (Json.atPath jsonPath) input
+    # map Array.concat
+  where
+    jsonPath = toJsonPath path
 
 run (Pipe l r) input = run l input >>= run r
 
@@ -93,13 +95,6 @@ expandKeyValuePairs arr input =
       )
 
   combineMultipleKeyValues = sequence
-
-accessor :: Maybe (Array Json) -> Target -> Maybe (Array Json)
-accessor acc (Key k) = acc >>= traverse (Json.atKey k)
-
-accessor acc (AtIndex i) = acc >>= traverse (Json.atIndex i)
-
-accessor acc Each = acc >>= traverse Json.values # map concat
 
 toEither :: Maybe (Array Json) -> Either String (Array Json)
 toEither output = case output of
