@@ -1,7 +1,6 @@
 module Interpreter (run) where
 
 import Prelude
-
 import Data.Array (concat)
 import Data.Array as Array
 import Data.Either (Either(..), note)
@@ -57,8 +56,14 @@ run (Update l r) inputs = do
 runUpdates :: Array Json.Path -> Expression -> Json -> Either String Json
 runUpdates paths rExp input = foldl runUpdate (pure input) paths
   where
-  runUpdate updatedJson path = do
-    updatedJson >>= Json.update path (\j ->  map (Array.head >>> fromMaybe JNull) (run rExp [j]))
+  runUpdate :: Either String Json -> Json.Path -> Either String Json
+  runUpdate updatedJson path =
+    updatedJson
+      >>= Json.update path (runRightExpression >=> pickFirstOutput)
+
+  runRightExpression json = run rExp [ json ]
+
+  pickFirstOutput = Array.head >>> note "The right hand side of an update assignment must return at least one value"
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
 expandKeyValuePairs arr input =
