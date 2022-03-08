@@ -1,32 +1,24 @@
 module Test.Json where
 
-import Helpers.Expression
-
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Expression (Expression, accessByKeyName)
-import Interpreter (run) as Interpreter
 import Json (index, everyItem, key)
 import Json as Json
-import Prelude (Unit, discard, pure, unit, (+))
-import Test.Helpers.Json (num, str)
-import Test.Spec (Spec, describe, it)
+import Prelude (Unit, discard)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual)
-import Text.Parsing.Parser (runParser)
 
 main :: Spec Unit
 main = do
   describe "Json" do
     describe "Reads" do
       it "an empty path refers to the whole json structure" do
-        testRead []
-          """ 42 """
-          [ """ 42 """ ]
+        testRead [] """ 42 """ [ """ 42 """ ]
       it "reads at the specified key" do
-        testRead [key "pizza"]
+        testRead [ key "pizza" ]
           """
             {
                 "pizza": "Margherita"
@@ -34,7 +26,7 @@ main = do
           """
           [ """ "Margherita" """ ]
       it "reads at the specified index" do
-        testRead [index 1]
+        testRead [ index 1 ]
           """
             [ "Salsiccia",
               "Patate"
@@ -50,14 +42,23 @@ main = do
             }
           """
           [ """ "first value" """, """ "second value" """ ]
+      it "reads all array values" do
+        testRead [ everyItem ]
+          """
+            [
+              "Croque",
+              "Monsieur"
+            ]
+          """
+          [ """ "Croque" """, """ "Monsieur" """ ]
       it "mixed access" do
-        testRead [key "pizza", index 1]
+        testRead [ key "pizza", everyItem, index 1 ]
           """
             {
-                "pizza": [ "Salsiccia", "Patate" ]
+                "pizza": [ ["Senape", "Patate"], ["OtherStuff", "Funghi"] ]
             }
           """
-          [ """ "Patate" """ ]
+          [ """ "Patate" """, """ "Funghi" """ ]
     describe "Updates" do
       it "an empty path refers to the whole json structure" do
         testUpdate []
@@ -66,7 +67,7 @@ main = do
                 "iLove": "bread"
             }
           """
-          ["""42"""]
+          [ """42""" ]
           """42"""
       it "replaces value in an object" do
         testUpdate [ key "pizza", key "name" ]
@@ -75,7 +76,7 @@ main = do
                   "pizza": { "name": "Bianca" }
               }
           """
-          [""" "Napoletana" """]
+          [ """ "Napoletana" """ ]
           """
               {
                   "pizza": { "name": "Napoletana" }
@@ -90,33 +91,54 @@ main = do
               ]
               
           """
-          [""" "Lasagna" """]
+          [ """ "Lasagna" """ ]
           """
               [
                   "Panino",
                   "Lasagna"
               ]
           """
-      it "replaces value using a mixed path" do
-        testUpdate [ index 1, key "food" ]
+      it "updates all object values (sorted by key)" do
+        testUpdate [ everyItem ]
           """
-              [
-                  {"food": "milk"},
-                  {"food": "bread"}
-              ]
-              
+            {
+              "zz": "bread",
+              "aa": "pasta"
+            }
           """
-          [""" {"type": "bread", "weight": 42} """]
+          [ """ "first" """, """ "second" """ ]
           """
-              [
-                  {"food": "milk"},
-                  {"food": {"type": "bread", "weight": 42}}
-              ]
+            {
+              "zz": "second",
+              "aa": "first"
+            }
+          """
+      it "updates all array values" do
+        testUpdate [ everyItem ]
+          """
+            [1, 2, 3]
+          """
+          [ """42""", """43""", """44""" ]
+          """
+            [42, 43, 44]
+          """
+      it "replaces values using a mixed path" do
+        testUpdate [ key "pizza", everyItem, index 0 ]
+          """
+            {
+                "pizza": [ ["Senape", "Patate"], ["OtherStuff", "Funghi"] ]
+            }
+          """
+          [ """ "Salsiccia" """, """ "Quattro Stagioni" """ ]
+          """
+            {
+                "pizza": [ ["Salsiccia", "Patate"], ["Quattro Stagioni", "Funghi"] ]
+            }
           """
 
 testUpdate :: forall a. MonadThrow Error a => Json.Path -> String -> Array String -> String -> a Unit
-testUpdate path json newValues expected = case { j: Json.parse json, new: traverse Json.parse newValues, exp: Json.parse expected} of
-  {j: (Right json'), new: (Right newValues'), exp: (Right expected')} -> Json.update path newValues' json' `shouldEqual` Right expected'
+testUpdate path json newValues expected = case { j: Json.parse json, new: traverse Json.parse newValues, exp: Json.parse expected } of
+  { j: (Right json'), new: (Right newValues'), exp: (Right expected') } -> Json.update path newValues' json' `shouldEqual` Right expected'
   _ -> fail "Json test definition failed to parse"
 
 testRead :: forall a. MonadThrow Error a => Json.Path -> String -> Array String -> a Unit

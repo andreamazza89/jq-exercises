@@ -18,7 +18,7 @@ import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
-import Json (Path, Target, key, index) as Json
+import Json (Path, Target, key, everyItem, index) as Json
 
 data Expression
   = Identity
@@ -67,7 +67,7 @@ toJsonPaths exp =
 toJsonTarget :: Target -> Maybe Json.Target
 toJsonTarget (Key k) = Just (Json.key k)
 toJsonTarget (AtIndex i) = Just (Json.index i)
-toJsonTarget _ = Nothing
+toJsonTarget Each = Just (Json.everyItem)
 
 -- Show
 

@@ -4,12 +4,13 @@ import Prelude
 import Data.Array (concat)
 import Data.Array as Array
 import Data.Either (Either(..), note)
+import Debug as Debug
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Expression (Expression(..), Target(..), KeyValuePair, toJsonPaths)
-import Json (Json, atPath, key)
+import Json (Json(..), atPath, key)
 import Json (Path, atIndex, atKey, atPath, buildArray, buildObject, emptyArray, emptyObject, update, values) as Json
 
 type Input
@@ -58,7 +59,7 @@ runUpdates paths rExp input = foldl runUpdate (pure input) paths
   where
   runUpdate updatedJson path = do
     innerJson <- Json.atPath path input
-    rOutput <- run rExp innerJson
+    rOutput <- traverse (Array.singleton >>> run rExp) innerJson # map (map (Array.head >>> fromMaybe JNull))
     updatedJson >>= Json.update path rOutput
 
 expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))

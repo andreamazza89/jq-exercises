@@ -18,15 +18,15 @@ module Json
   , serialise
   , update
   , values
-  )
-  where
+  ) where
 
+import Data.FoldableWithIndex
 import Prelude
 import Utils.Parsing
 
 import Control.Alternative ((<|>))
 import Control.Lazy (fix)
-import Data.Array (concat, drop, fromFoldable, head, index, singleton, updateAt, zip) as Array
+import Data.Array (concat, drop, fromFoldable, head, index, singleton, tail, updateAt, zip) as Array
 import Data.Array (many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
@@ -40,6 +40,7 @@ import Data.String as String
 import Data.String.CodeUnits (singleton)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
+import Debug as Debug
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Combinators (many1, try)
 import Text.Parsing.Parser.String (char, satisfy, string)
@@ -92,31 +93,30 @@ at (Key k) json =
   atKey k json
     # map Array.singleton
     # note ("Could not find key named " <> k <> " in given json object: " <> show json)
+
 at (Index i) json =
   atIndex i json
     # map Array.singleton
     # note ("Could not find item with index" <> show i <> " in given array: " <> show json)
+
 at EveryItem (JObject map) =
   Map.values map
     # Array.fromFoldable
     # pure
-at EveryItem (JArray arr) =
-  pure (arr)
-at EveryItem json =
-  Left ("Invalid json access pattern: you are trying to access all items against this json: " <> show json)
+
+at EveryItem (JArray arr) = pure (arr)
+
+at EveryItem json = Left ("Invalid json access pattern: you are trying to access all items against this json: " <> show json)
 
 atPath :: Path -> Json -> Either String (Array Json)
-atPath [] json =
-  Right [json]
-atPath targets json =
-  let
-    defaultTarget = Key "this will not happen as we catch the empty list above"
-    target = fromMaybe defaultTarget (Array.head targets)
-    remainingTargets = Array.drop 1 targets
-  in do
+atPath [] json = Right [ json ]
+
+atPath targets json = do
   innerJsons <- at target json
   traverse (atPath remainingTargets) innerJsons
     # map Array.concat
+  where
+  Tuple target remainingTargets = headAndTail targets
 
 atKey :: String -> Json -> Maybe Json
 atKey k (JObject object) =
@@ -164,25 +164,40 @@ everyItem = EveryItem
 
 update :: Path -> Array Json -> Json -> Either String Json
 update [] newValues _ =
-  note "must have at least one value" $ Array.head newValues
-update targets newValues json =
-  let
-    defaultTarget = Key "this will not happen as we catch the empty list above"
-    target = fromMaybe defaultTarget (Array.head targets)
-    remainingTargets = Array.drop 1 targets
-  in do
-    innerJsons <- at target json
-    vals <- traverse (update remainingTargets newValues) innerJsons
-    update_ target vals json
+  Array.head newValues
+    # note "must have at least one value"
+
+update targets newValues json = do
+  innerJsons <- at target json
+  updated <- updateInnerJsons innerJsons
+  update_ target updated json
+  where
+    Tuple target remainingTargets = headAndTail targets
+    updateInnerJsons innerJsons =
+      case target of
+        EveryItem ->
+          Array.zip innerJsons newValues
+            # traverse (\(Tuple inner newVal) -> update remainingTargets [ newVal ] inner)
+        _ -> traverse (update remainingTargets newValues) innerJsons
 
 update_ :: Target -> Array Json -> Json -> Either String Json
-update_ (Key k) [newValue] (JObject obj) =
-  Right $ JObject (Map.alter (\_ -> Just newValue) k obj)
-update_ (Index i) [newValue] (JArray arr) =
+update_ (Key k) [ newValue ] (JObject obj) = Right $ JObject (Map.alter (\_ -> Just newValue) k obj)
+
+update_ (Index i) [ newValue ] (JArray arr) =
   Array.updateAt i newValue arr
     # map JArray
     # note ("Cannot update. index: " <> show i <> ", array: " <> show arr)
-update_ _ _ _ = Left "this json cannot be updated with a target as it is neither an object nor an array"
+
+update_ EveryItem newValues (JObject obj) =
+  Array.fromFoldable (Map.keys obj)
+    # flip Array.zip newValues
+    # Map.fromFoldable
+    >>> JObject
+    # pure
+
+update_ EveryItem newValues _ = pure (JArray newValues)
+
+update_ _ _ json = Left ("this json cannot be updated with a target as it is neither an object nor an array: " <> show json)
 
 -- Parse
 parse :: String -> Either String Json
@@ -281,3 +296,14 @@ toTupleArray map =
 -- Helpers
 chrsToString :: forall f. Foldable f => f Char -> String
 chrsToString = Foldable.foldMap singleton
+
+-- This function is for ergonomics: purescript does not support pattern matching on an array like (head:tail),
+-- so it is to be only used when certain that the array it deals with is not empty.
+headAndTail :: Array Target -> Tuple Target (Array Target)
+headAndTail arr = Tuple head tail
+  where
+  head = fromMaybe default (Array.head arr)
+
+  tail = fromMaybe [] (Array.tail arr)
+
+  default = Key "Error - was expecting a non-empty list"
