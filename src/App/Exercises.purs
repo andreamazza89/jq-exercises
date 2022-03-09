@@ -29,6 +29,7 @@ all =
   , arrayConstructor
   , objectConstructorPartOne
   , objectConstructorPartTwo
+  , assignmentUpdate
   ]
 
 first :: Exercise
@@ -425,7 +426,6 @@ or `{ pasta: .pasta }`.
       ]
   }
 
-
 objectConstructorPartTwo :: Exercise
 objectConstructorPartTwo =
   { name: "Objecty constructor - Part two"
@@ -486,5 +486,94 @@ and then the cartesian product of all key/value pairs for the result
       [ """ { "dish": "Lasagne" } """
       , """ { "dish": "Tagliatelle" } """
       , """ { "dish": "Porchetta" } """
+      ]
+  }
+
+assignmentUpdate :: Exercise
+assignmentUpdate =
+  { name: "Assignment - update"
+  , description:
+      """
+JQ has a few assignment operators, which let you modify JSON.
+
+The update operator (`|=`) lets you specify what part of the JSON you want to change on the
+left hand side and how to change it on the right hand side:
+
+```
+json input: { "pizza": "update this" }
+jq expression: .pizza |= "Margherita"
+
+jq output: { "pizza": "Margherita" }
+```
+_'Assignment'_ is possibly a misnomer, as it is done immutably.
+
+There are a few more things to keep in mind:
+
+  1. the right hand side can be any JQ expression, whose input is whatever the left hand side returns.
+  ```
+  json input: { "pizzas": ["Margherita", "Funghi"] }
+  jq expression: .pizzas |= .[1]
+
+  jq output: { "pizzas": "Funghi" }
+  ```
+  (in the above, the expression `.[1]` runs against the output of `.pizzas`, which is `["Margherita", "Funghi"]`)
+
+  2. if the right hand side returns more than one JSON value, only the first one is used.
+  ```
+  json input: { "pizzas": ["Margherita", "Funghi"] }
+  jq expression: .pizzas |= .[]
+
+  jq output: { "pizzas": "Margherita" }
+  ```
+
+  3. if the left hand side contains multiple 'paths', they all get updated.
+  ```
+  json input: { "pizzas": ["Margherita", "Funghi"], "pastas": ["Lasagne", "Strozzapreti"] }
+  jq expression: (.pizzas, .pastas) |= .[1]
+
+  jq output: { "pizzas": "Funghi", "pastas": "Strozzapreti" }
+  ```
+  
+  4. if the left hand side contains the iterator (`[]`), the update applies to all items
+     (either values of an object or items of an array).
+  ```
+  json input: { "pizzas": [{ "name": "Margherita"}, {"name": "Funghi"}] }
+  jq expression: .pizzas[] |= .name
+
+  jq output: { "pizzas": [ "Margherita", "Funghi"] }
+  ```
+
+**Objective**: make the following updates to the given json:
+- update the pairings so that the `"drink"` value is a string rather than an object 
+  (i.e. replace `{"type": "beer"}` with `"beer"`)
+- update the cocktails to replace the list of ingredients with the first ingredient
+  (i.e. replace `["gin", "tonic"]` with `"gin"`)
+"""
+  , json:
+      """
+{
+  "pairings": [
+    {"dish": "pizza", "drink": {"type": "beer"} },
+    {"dish": "lasagna", "drink": {"type": "wine"} }
+  ],
+  "cocktails": {
+    "ginTonic": ["gin", "tonic"],
+    "margarita": ["tequila", "triple sec", "lime juice"]
+  }
+}
+"""
+  , solution:
+      [ """
+        {
+          "pairings": [
+            {"dish": "pizza", "drink": "beer" },
+            {"dish": "lasagna", "drink": "wine" }
+          ],
+          "cocktails": {
+            "ginTonic": "gin",
+            "margarita": "tequila"
+          }
+        }
+       """
       ]
   }
