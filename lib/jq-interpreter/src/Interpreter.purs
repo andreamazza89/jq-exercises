@@ -24,7 +24,7 @@ run (Accessor _ path) input =
   traverse (Json.atPath jsonPath) input
     # map Array.concat
   where
-    jsonPath = toJsonPath path
+  jsonPath = toJsonPath path
 
 run (Pipe l r) input = run l input >>= run r
 

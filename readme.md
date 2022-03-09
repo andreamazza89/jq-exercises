@@ -2,9 +2,9 @@
 
 This is a learning project, with the following high-level goals:
 
-- Build a compiler for a subset of the jq language
+- Build an interpreter for a subset of the jq language
 - Use the above to build an app with jq exercises to learn jq
-- Learn jq, and a bit about compilers as I do the above
+- Learn jq, and a bit about compilers/interpreters as I do the above
 
 ## Short term Goals
 
@@ -39,7 +39,7 @@ The interpreter step takes the Expression, along with input json and returns jso
 String -> Either ParseError AST
 
 .. interpret {"foo": 32} -> (Select "foo") -> 32
-JSON -> Expression -> JSON
+JSON -> Expression -> Array JSON
 ```
 
 ---
@@ -63,10 +63,10 @@ JSON -> Expression -> JSON
 - Array vs List in Purescript - which to use when / is there a good default?
   - Aside from performance (which I am not going to be concerned about), I think Array should be the default as the literal syntax
     desugars to this type and not List.
-- I wonder why the `chainl` combinator asks for a default value and returns that instead of failing?
 - Is the pipe operator left associative?
   - I think so, as the evaluation happens left to right, like this: `f(x) | g(f(x)) | h(g(f(x)))`, whereas if it was
-    right-associative it would be like ` h(g(f(x))) | f(x) | g(f(x))`
+    right-associative it would be like `h(g(f(x))) | f(x) | g(f(x))`
+  - However, see the section on Associative property below.
 - I still need to wrap my head around how in jq pipes can have multiple outputs. For example, `[1,2,3][]` has 3 separate
   outputs: `1`, `2` adn `3`, which is different from the array we start with (`[1,2,3]`). I am sure there are good reasons
   for this, but I don't know what those are yet.
@@ -77,10 +77,10 @@ JSON -> Expression -> JSON
 
 ### Left recursion
 When I started adding support for `Pipe` (`|`), I ran into the left recursion problem, which took me a while to even
-realise what the problem was. [This blog post](https://github.com/glebec/left-recursion) describes the issue really well
+realise what the problem was. [This page](https://github.com/glebec/left-recursion) describes the issue really well
 and helped me climb out of that hole!
 
-The blog post above mentions [this page](https://www.csd.uwo.ca/~mmorenom/CS447/Lectures/Syntax.html/node8.html), which
+The page above mentions [this page](https://www.csd.uwo.ca/~mmorenom/CS447/Lectures/Syntax.html/node8.html), which
 is a mathematical explanation of how the problem is solved. I'd love to be able to understand the math version.
 
 ### Associative Property
@@ -96,5 +96,14 @@ associative property and described in [this wiki](https://en.m.wikipedia.org/wik
 
 Addition is an example of this property, where it doesn't matter how you parenthesise, it will always yield the same result.
 
-### Pratt Parsers
-TODO - details here
+### Pratt Parsers and operator precedence
+Adding a second infix operator (`,`), raised the issue of _operator precedence_.
+This is fully described in [this issue](https://github.com/andreamazza89/jq-exercises/issues/1) including how
+I decided to implement a Pratt Parser to solve the problem.
+
+### JQ is an iceberg!
+I had no idea how 'big' a language JQ could be, including functions, variables and modules.
+
+I would love to see real-world examples where all these features are used for some very complex transformation, but I
+personally feel like perhaps some of the more esoteric features are born from wanting to stretch the language rather than
+a need coming from its users; this is just a hunch and I'd love to be wrong and see examples.
