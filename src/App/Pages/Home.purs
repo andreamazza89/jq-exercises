@@ -4,8 +4,10 @@ module App.Pages.Home
 
 import Prelude
 import App.DomUtils (container, button, errorMessage, inputChanged, row, showJsons)
+import App.DebouncedInput
 import App.Exercises as Exercises
 import Data.Either (either)
+import Data.Maybe (fromMaybe)
 import Effect (Effect)
 import JQ as JQ
 import Navigation (Navigation)
@@ -16,17 +18,18 @@ import WebComponents.Markdown as Markdown
 
 type HomeState
   = { jsonInput :: String
-    , expressionInput :: String
+    , expressionInput :: DebouncedInput
     }
 
 data Action
   = JsonInputUpdated String
   | ExpressionInputUpdated String
+  | Bounce DebouncedInput
 
 initialState :: HomeState
 initialState =
   { jsonInput: """{"iLove": "bread"}"""
-  , expressionInput: ".iLove"
+  , expressionInput: init ".iLove"
   }
 
 reducerFn :: Effect (Reducer HomeState Action)
@@ -34,7 +37,8 @@ reducerFn =
   mkReducer
     ( \s action -> case action of
         JsonInputUpdated newInput -> s { jsonInput = newInput }
-        ExpressionInputUpdated newInput -> s { expressionInput = newInput }
+        ExpressionInputUpdated newInput -> s { expressionInput = addValue newInput s.expressionInput }
+        Bounce previous -> s { expressionInput = debounce previous s.expressionInput }
     )
 
 mkHome :: Component Navigation
@@ -42,6 +46,7 @@ mkHome = do
   reducer <- reducerFn
   component "Home" \nav -> React.do
     state /\ dispatch <- useReducer initialState reducer
+    bounce state.expressionInput (Bounce >>> dispatch)
     pure
       $ container
           [ row
@@ -55,7 +60,7 @@ mkHome = do
                   , onChange: inputChanged dispatch JsonInputUpdated
                   }
               , DOM.textarea
-                  { value: state.expressionInput
+                  { value: fromMaybe "" $ latestValue state.expressionInput
                   , onChange: inputChanged dispatch ExpressionInputUpdated
                   }
               ]
@@ -63,7 +68,7 @@ mkHome = do
               ( either
                   (\reason -> [ errorMessage $ "Something went wrong: " <> reason ])
                   (\output -> [ showJsons "Output from your Expression" output ])
-                  (JQ.run state.jsonInput state.expressionInput)
+                  (JQ.run state.jsonInput (fromMaybe "" $ debouncedValue state.expressionInput))
               )
           ]
 

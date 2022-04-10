@@ -1,12 +1,13 @@
 module App.Pages.Exercise (mkExercise) where
 
-import Prelude
 import App.DomUtils
+import App.DebouncedInput
+import Prelude
 import App.Exercises (Exercise)
 import App.Exercises (next) as Exercises
 import Data.Array (all, length, zip) as Array
 import Data.Either (Either(..))
-import Data.Maybe (maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -25,11 +26,12 @@ type ExerciseProps
     }
 
 type ExerciseState
-  = { exerciseInput :: String
+  = { exerciseInput :: DebouncedInput
     }
 
 data ExerciseAction
   = ExerciseInputUpdated String
+  | Bounce DebouncedInput
   | ResetInput
 
 data ViewExercise
@@ -39,14 +41,15 @@ data ViewExercise
   | Success (Array String)
 
 initialExerciseState :: ExerciseState
-initialExerciseState = { exerciseInput: "" }
+initialExerciseState = { exerciseInput: empty }
 
 exerciseReducerFn :: Effect (Reducer ExerciseState ExerciseAction)
 exerciseReducerFn =
   mkReducer
     ( \s action -> case action of
-        ExerciseInputUpdated newInput -> s { exerciseInput = newInput }
-        ResetInput -> s { exerciseInput = "" }
+        ExerciseInputUpdated newInput -> s { exerciseInput = addValue newInput s.exerciseInput }
+        ResetInput -> s { exerciseInput = empty }
+        Bounce previous -> s { exerciseInput = debounce previous s.exerciseInput }
     )
 
 reset :: (ExerciseAction -> Effect Unit) -> EventHandler
@@ -57,6 +60,7 @@ mkExercise = do
   reducer <- exerciseReducerFn
   component "Exercise" \{ exercise, navigation } -> React.do
     state /\ dispatch <- useReducer initialExerciseState reducer
+    bounce state.exerciseInput (Bounce >>> dispatch)
     let
       nextExercise =
         Exercises.next exercise
@@ -73,7 +77,7 @@ mkExercise = do
           , row
               [ showJson exercise.json
               , DOM.textarea
-                  { value: state.exerciseInput
+                  { value: fromMaybe "" $ latestValue state.exerciseInput
                   , onChange: inputChanged dispatch ExerciseInputUpdated
                   , id: "jq-input"
                   , onFocus: capture_ (scrollJqInputIntoView)
@@ -117,10 +121,9 @@ extraHeight :: JSX -> JSX
 extraHeight element = withMinHeight 1500 element
 
 toViewExercise :: Exercise -> ExerciseState -> ViewExercise
-toViewExercise exercise state =
-  if (state.exerciseInput == "") then
-    NotStarted
-  else case JQ.run exercise.json state.exerciseInput of
+toViewExercise exercise state = case debouncedValue state.exerciseInput of
+  Nothing -> NotStarted
+  Just input -> case JQ.run exercise.json input of
     Right output -> checkSolution output
     Left reason -> FailedToRun $ "Something went wrong: " <> reason
   where
