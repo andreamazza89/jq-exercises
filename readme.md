@@ -25,7 +25,16 @@ This is a learning project, with the following high-level goals:
   - autocomplete
   - helpful error messages (elm-like)
   - module system (this one is probably more than I can chew..)
-    
+
+## To run it locally
+
+You need to have NodeJS installed (version 16 or above).
+
+- install js dependencies with `npm install`
+- install purescript dependencies with `npm run spago-install`
+- build purescript with `npm run build-watch`
+- start the development server with `npm run dev`
+
 ## Architecture
 
 There are two phases: compiling and interpreting.
