@@ -21,6 +21,10 @@ comma = char ','
 colon :: Parser String Char
 colon = char ':'
 
+semiColon :: Parser String Char
+semiColon = char ';'
+
+
 dash :: Parser String Char
 dash = (char '-')
 
@@ -39,6 +43,10 @@ identTail :: Parser String Char
 identTail =
   identHead
     <|> satisfy (codePointFromChar >>> isDecDigit)
+
+-- Special strings
+def :: Parser String String
+def = string "def"
 
 -- Ident
 ident :: Parser String String

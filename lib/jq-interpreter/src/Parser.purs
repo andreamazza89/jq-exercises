@@ -16,6 +16,8 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
+import Environment (Environment(..))
+import Environment (addFunction, empty) as Environment
 import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
@@ -23,37 +25,43 @@ import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (eof, satisfy)
 
-parse :: String -> Either String Expression
+type JqParser
+  = Parser String ParserOutput
+
+type ParserOutput
+  = Tuple Expression Environment
+
+parse :: String -> Either String ParserOutput
 parse input =
   runParser input parser
     # lmap parseErrorMessage
 
-parser :: Parser String Expression
+parser :: JqParser
 parser = do
   exp <-
     fix
       ( \p ->
-          expressionParser $ parserConfig p allInfixParsers
+          expressionParser $ parserConfig (map fst p) allInfixParsers
       )
   _ <- eof
   pure exp
 
-parserConfig :: Parser String Expression -> (Array String) -> ParserConfig Expression
+parserConfig :: Parser String Expression -> Array String -> ParserConfig ParserOutput
 parserConfig p infixToKeep =
   let
     allPrefix =
-      [ parenthesesParser p
-      , objectConstructorParser p
-      , arrayConstructorParser p
-      , accessorParser
-      , identityParser
-      , literalParser
+      [ map (\exp -> Tuple exp Environment) (parenthesesParser p)
+      , map (\exp -> Tuple exp Environment) (objectConstructorParser p)
+      , map (\exp -> Tuple exp Environment) (arrayConstructorParser p)
+      , map (\exp -> Tuple exp Environment) accessorParser
+      , withParseEnvironment identityParser
+      , map (\exp -> Tuple exp Environment) literalParser
       ]
 
     allInfix =
-      [ Tuple "update" $ infixLeft "|=" 5 Update
-      , Tuple "pipe" $ infixLeft "|" 2 Pipe
-      , Tuple "comma" $ infixLeft "," 3 Comma
+      [ Tuple "update" $ infixLeft "|=" 5 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Update lexp rexp) Environment)
+      , Tuple "pipe" $ infixLeft "|" 2 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Pipe lexp rexp) Environment)
+      , Tuple "comma" $ infixLeft "," 3 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Comma lexp rexp) Environment)
       ]
   in
     { prefix: allPrefix
@@ -62,6 +70,24 @@ parserConfig p infixToKeep =
           # Array.filter (fst >>> flip elem infixToKeep)
           # map snd
     }
+
+withParseEnvironment :: Parser String Expression -> JqParser
+withParseEnvironment p = do
+  environment <- environmentParser p
+  expression <- p
+  pure (Tuple expression environment)
+
+environmentParser :: Parser String Expression -> Parser String Environment
+environmentParser p = do
+  try functionDefinitionParser <|> (pure Environment.empty)
+  where
+  functionDefinitionParser = do
+    _ <- spaced def
+    functionName <- ident
+    _ <- colon
+    expression <- p
+    _ <- semiColon
+    pure (Environment.addFunction ({ name: functionName, body: expression }) Environment.empty)
 
 allInfixParsers :: Array String
 allInfixParsers =
@@ -80,6 +106,7 @@ objectValueParser p =
   -- consume the comma operator, like `("a" |key) : (42 , "b" |value)` and then blow up.
   in
     expressionParser (parserConfig p allInfixButComma)
+      # map fst
 
 parenthesesParser :: Parser String Expression -> Parser String Expression
 parenthesesParser = inParentheses
