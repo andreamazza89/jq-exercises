@@ -4,6 +4,7 @@ module Parser
   ) where
 
 import Utils.Parsing
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
@@ -16,8 +17,8 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
-import Environment (Environment(..))
-import Environment (addFunction, empty) as Environment
+import Environment (Environment)
+import Environment (addFunction, empty) as Env
 import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
@@ -50,18 +51,18 @@ parserConfig :: Parser String Expression -> Array String -> ParserConfig ParserO
 parserConfig p infixToKeep =
   let
     allPrefix =
-      [ map (\exp -> Tuple exp Environment) (parenthesesParser p)
-      , map (\exp -> Tuple exp Environment) (objectConstructorParser p)
-      , map (\exp -> Tuple exp Environment) (arrayConstructorParser p)
-      , map (\exp -> Tuple exp Environment) accessorParser
+      [ withParseEnvironment (parenthesesParser p)
+      , withParseEnvironment (objectConstructorParser p)
+      , withParseEnvironment (arrayConstructorParser p)
+      , withParseEnvironment accessorParser
       , withParseEnvironment identityParser
-      , map (\exp -> Tuple exp Environment) literalParser
+      , withParseEnvironment literalParser
       ]
 
     allInfix =
-      [ Tuple "update" $ infixLeft "|=" 5 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Update lexp rexp) Environment)
-      , Tuple "pipe" $ infixLeft "|" 2 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Pipe lexp rexp) Environment)
-      , Tuple "comma" $ infixLeft "," 3 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Comma lexp rexp) Environment)
+      [ Tuple "update" $ infixLeft "|=" 5 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Update lexp rexp) Env.empty)
+      , Tuple "pipe" $ infixLeft "|" 2 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Pipe lexp rexp) Env.empty)
+      , Tuple "comma" $ infixLeft "," 3 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Comma lexp rexp) Env.empty)
       ]
   in
     { prefix: allPrefix
@@ -71,6 +72,8 @@ parserConfig p infixToKeep =
           # map snd
     }
 
+-- Takes an expression parser and tries to parse an Environment before the Expression, then puts
+-- them together into a ParserOutput. The Environment defaults to empty if not present.
 withParseEnvironment :: Parser String Expression -> JqParser
 withParseEnvironment p = do
   environment <- environmentParser p
@@ -79,7 +82,7 @@ withParseEnvironment p = do
 
 environmentParser :: Parser String Expression -> Parser String Environment
 environmentParser p = do
-  try functionDefinitionParser <|> (pure Environment.empty)
+  try functionDefinitionParser <|> pure Env.empty
   where
   functionDefinitionParser = do
     _ <- spaced def
@@ -87,7 +90,7 @@ environmentParser p = do
     _ <- colon
     expression <- p
     _ <- semiColon
-    pure (Environment.addFunction ({ name: functionName, body: expression }) Environment.empty)
+    pure (Env.addFunction ({ name: functionName, arity: 0, body: expression }) Env.empty)
 
 allInfixParsers :: Array String
 allInfixParsers =
