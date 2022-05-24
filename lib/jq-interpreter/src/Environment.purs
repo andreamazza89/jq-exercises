@@ -2,6 +2,8 @@ module Environment
   ( Environment(..) -- TODO - make me opaque pleaseeeee?
   , Arity
   , FunctionOptions
+  , FunctionKey
+  , FunctionName
   , addFunction
   , getFunction
   , empty
@@ -12,20 +14,23 @@ import Data.Map (Map)
 import Data.Map (empty, insert, lookup) as Map
 import Data.Maybe (Maybe)
 import Data.Tuple (Tuple(..))
-import Expression (Expression)
 import Prelude (class Eq, class Show, map, (#))
 
-data Environment
-  = Environment { functions :: Map (Tuple String Arity) Expression }
+data Environment expression
+  = Environment { functions :: Map FunctionKey expression }
+
+type FunctionKey = Tuple FunctionName Arity
+
+type FunctionName = String
 
 type Arity
   = Int
 
 -- The 'ingredients' required to add a function to the environment
-type FunctionOptions
+type FunctionOptions expression
   = { name :: String
     , arity :: Arity
-    , body :: Expression
+    , body :: expression
     }
 
 -- The output given when looking up a function in the Environment
@@ -35,20 +40,20 @@ type FunctionOptions
 --    getFunction "foo" [identity]
 -- then `body` will be something like `apply(bar) + 1`
 -- and `environment` will contain the function `bar`, which is bound to the identity function
-type FunctionOutput
-  = { body :: Expression
-    , environment :: Environment
+type FunctionOutput expression
+  = { body :: expression
+    , environment :: Environment expression
     }
 
-derive instance environmentEq :: Eq Environment
+derive instance environmentEq :: (Eq exp) => Eq (Environment exp)
 
-instance Show Environment where
+instance Show (Environment env) where
   show _ = "TODO - better show instance"
 
-empty :: Environment
+empty :: forall exp. Environment exp
 empty = Environment { functions: Map.empty }
 
-addFunction :: FunctionOptions -> Environment -> Environment
+addFunction :: forall exp. FunctionOptions exp -> Environment exp -> Environment exp
 addFunction { name, arity, body } (Environment env) =
   Environment
     ( env
@@ -56,7 +61,7 @@ addFunction { name, arity, body } (Environment env) =
         }
     )
 
-getFunction :: String -> Array Expression -> Environment -> Maybe FunctionOutput
+getFunction :: forall exp. String -> Array exp -> Environment exp -> Maybe (FunctionOutput exp)
 getFunction name arguments (Environment { functions }) =
   Map.lookup (Tuple name (length arguments)) functions
     # map (\exp -> { body: exp, environment: empty })

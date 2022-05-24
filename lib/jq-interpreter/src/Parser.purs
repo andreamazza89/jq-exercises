@@ -30,7 +30,7 @@ type JqParser
   = Parser String ParserOutput
 
 type ParserOutput
-  = Tuple Expression Environment
+  = Tuple Expression (Environment Expression)
 
 parse :: String -> Either String ParserOutput
 parse input =
@@ -80,7 +80,7 @@ withParseEnvironment p = do
   expression <- p
   pure (Tuple expression environment)
 
-environmentParser :: Parser String Expression -> Parser String Environment
+environmentParser :: Parser String Expression -> Parser String (Environment Expression)
 environmentParser p = do
   try functionDefinitionParser <|> pure Env.empty
   where

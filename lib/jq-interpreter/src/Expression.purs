@@ -15,7 +15,7 @@ import Prelude
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray, singleton, toArray)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Data.String (joinWith)
 import Data.Tuple (Tuple)
 import Json (Json)
