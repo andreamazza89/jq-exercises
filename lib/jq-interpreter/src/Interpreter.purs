@@ -52,6 +52,9 @@ run (Update l r) inputs = do
   jsonPaths <- toJsonPaths l
   traverse (runUpdates jsonPaths r) inputs
 
+run (Apply _fn) _inputs = do
+  Left "boom - implement apply"
+
 runUpdates :: Array Json.Path -> Expression -> Json -> Either String Json
 runUpdates paths rExp input = foldl runUpdate (pure input) paths
   where

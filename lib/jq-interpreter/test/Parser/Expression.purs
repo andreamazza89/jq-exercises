@@ -10,7 +10,7 @@ import Expression (Expression)
 import Parser (parse)
 import Prelude (Unit, ($), discard, map, pure, unit)
 import Test.Helpers.Json (num, str)
-import Test.Spec (Spec, describe, it)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual)
 
 main :: Spec Unit
@@ -102,8 +102,11 @@ main = do
     describe "Assignment" do
       it "update assignment" do
         testParser ". |= ." $ identity |= identity
+    describe "Function Application" do
+      it "simple function application" do
+        testParser "def foo: .; foo" $ apply "foo" 0
     describe "Miscellaneous" do
-      it "spurious character after a valid expression are not allowed" do
+      it "spurious characters after a valid expression are not allowed" do
         testFailure ". | . ~~~~~~~~"
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit

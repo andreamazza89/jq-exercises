@@ -2,8 +2,10 @@ module Environment
   ( Environment(..) -- TODO - make me opaque pleaseeeee?
   , Arity
   , FunctionOptions
+  , FunctionArgs
   , FunctionKey
   , FunctionName
+  , JqFunction
   , addFunction
   , getFunction
   , empty
@@ -19,12 +21,18 @@ import Prelude (class Eq, class Show, map, (#))
 data Environment expression
   = Environment { functions :: Map FunctionKey expression }
 
-type FunctionKey = Tuple FunctionName Arity
+------------------------------
+-- Possibly extract Function stuff into its own file?
+type FunctionKey
+  = Tuple FunctionName Arity
 
-type FunctionName = String
+type FunctionName
+  = String
 
 type Arity
   = Int
+
+type FunctionArgs exp = Array exp
 
 -- The 'ingredients' required to add a function to the environment
 type FunctionOptions expression
@@ -40,10 +48,13 @@ type FunctionOptions expression
 --    getFunction "foo" [identity]
 -- then `body` will be something like `apply(bar) + 1`
 -- and `environment` will contain the function `bar`, which is bound to the identity function
-type FunctionOutput expression
+type JqFunction expression
   = { body :: expression
     , environment :: Environment expression
     }
+
+-- End of function stuff
+------------------------------
 
 derive instance environmentEq :: (Eq exp) => Eq (Environment exp)
 
@@ -61,7 +72,7 @@ addFunction { name, arity, body } (Environment env) =
         }
     )
 
-getFunction :: forall exp. String -> Array exp -> Environment exp -> Maybe (FunctionOutput exp)
+getFunction :: forall exp. String -> FunctionArgs exp -> Environment exp -> Maybe (JqFunction exp)
 getFunction name arguments (Environment { functions }) =
   Map.lookup (Tuple name (length arguments)) functions
     # map (\exp -> { body: exp, environment: empty })

@@ -19,7 +19,7 @@ import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
 import Environment (Environment)
 import Environment (addFunction, empty) as Env
-import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
+import Expression (Expression(..), KeyValuePair, Over(..), Target(..), accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
@@ -41,28 +41,31 @@ parser :: JqParser
 parser = do
   exp <-
     fix
-      ( \p ->
-          expressionParser $ parserConfig (map fst p) allInfixParsers
+      ( \p -> do
+          env <- environmentParser (map fst p)
+          expression <- expressionParser $ parserConfig (map fst p) allInfixParsers
+          pure (Tuple expression env)
       )
   _ <- eof
   pure exp
 
-parserConfig :: Parser String Expression -> Array String -> ParserConfig ParserOutput
+parserConfig :: Parser String Expression -> Array String -> ParserConfig Expression
 parserConfig p infixToKeep =
   let
     allPrefix =
-      [ withParseEnvironment (parenthesesParser p)
-      , withParseEnvironment (objectConstructorParser p)
-      , withParseEnvironment (arrayConstructorParser p)
-      , withParseEnvironment accessorParser
-      , withParseEnvironment identityParser
-      , withParseEnvironment literalParser
+      [ parenthesesParser p
+      , objectConstructorParser p
+      , arrayConstructorParser p
+      , functionApplicationParser
+      , accessorParser
+      , identityParser
+      , literalParser
       ]
 
     allInfix =
-      [ Tuple "update" $ infixLeft "|=" 5 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Update lexp rexp) Env.empty)
-      , Tuple "pipe" $ infixLeft "|" 2 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Pipe lexp rexp) Env.empty)
-      , Tuple "comma" $ infixLeft "," 3 (\(Tuple lexp lenv) (Tuple rexp renv) -> Tuple (Comma lexp rexp) Env.empty)
+      [ Tuple "update" $ infixLeft "|=" 5 Update
+      , Tuple "pipe" $ infixLeft "|" 2 Pipe
+      , Tuple "comma" $ infixLeft "," 3 Comma
       ]
   in
     { prefix: allPrefix
@@ -87,9 +90,9 @@ environmentParser p = do
   functionDefinitionParser = do
     _ <- spaced def
     functionName <- ident
-    _ <- colon
+    _ <- spaced colon
     expression <- p
-    _ <- semiColon
+    _ <- spaced semiColon
     pure (Env.addFunction ({ name: functionName, arity: 0, body: expression }) Env.empty)
 
 allInfixParsers :: Array String
@@ -109,7 +112,6 @@ objectValueParser p =
   -- consume the comma operator, like `("a" |key) : (42 , "b" |value)` and then blow up.
   in
     expressionParser (parserConfig p allInfixButComma)
-      # map fst
 
 parenthesesParser :: Parser String Expression -> Parser String Expression
 parenthesesParser = inParentheses
@@ -119,6 +121,11 @@ literalParser = do
   Json.parser
     # map Literal
     # spaced
+
+functionApplicationParser :: Parser String Expression
+functionApplicationParser = do
+  functionName <- ident
+  pure $ Apply (Tuple functionName 0)
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
 arrayConstructorParser p = try emptyArray <|> try arrayWithItems
@@ -140,7 +147,7 @@ objectConstructorParser p =
   where
   keyValueParser :: Parser String KeyValuePair
   keyValueParser = do
-    key <- p <|> unquotedString
+    key <- unquotedString <|> p
     _ <- colon
     value <- objectValueParser p
     pure $ Tuple key value
