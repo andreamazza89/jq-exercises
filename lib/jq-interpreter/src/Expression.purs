@@ -17,7 +17,7 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Data.String (joinWith)
 import Data.Tuple (Tuple(..))
-import Environment (FunctionKey)
+import Environment (FunctionName)
 import Json (Json)
 import Json (Path, Target, key, everyItem, index) as Json
 
@@ -30,7 +30,7 @@ data Expression
   | Pipe Expression Expression
   | Comma Expression Expression
   | Update Expression Expression
-  | Apply FunctionKey
+  | Apply FunctionName
 
 type KeyValuePair
   = Tuple Expression Expression
@@ -92,7 +92,7 @@ instance Show Expression where
   show (Accessor (AnExpression expression) path) = show expression <> "." <> joinPath path
   show (Comma l r) = show l <> " , " <> show r
   show (Update l r) = show l <> " |= " <> show r
-  show (Apply (Tuple name _)) = name <> "(.)"
+  show (Apply name) = name <> "(.)"
 
 joinPath :: Path -> String
 joinPath path = joinWith "." (map show (toArray path))

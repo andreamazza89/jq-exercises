@@ -92,5 +92,5 @@ update = Update
 
 infixl 5 update as |=
 
-apply :: FunctionName -> Arity -> Expression
-apply name arity = Apply (Tuple name arity)
+apply :: FunctionName -> Expression
+apply name = Apply name

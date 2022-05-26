@@ -104,7 +104,7 @@ main = do
         testParser ". |= ." $ identity |= identity
     describe "Function Application" do
       it "simple function application" do
-        testParser "def foo: .; foo" $ apply "foo" 0
+        testParser "def foo: .; foo" $ apply "foo"
     describe "Miscellaneous" do
       it "spurious characters after a valid expression are not allowed" do
         testFailure ". | . ~~~~~~~~"

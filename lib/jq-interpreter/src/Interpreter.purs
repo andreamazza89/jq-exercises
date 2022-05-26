@@ -7,6 +7,8 @@ import Data.Foldable (foldl)
 import Data.Maybe (maybe)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
+import Environment (Environment)
+import Environment as Env
 import Expression (Expression(..), KeyValuePair, toJsonPath, toJsonPaths)
 import Json (Json)
 import Json (Path, atPath, buildArray, buildObject, emptyArray, emptyObject, update) as Json
@@ -17,58 +19,61 @@ type Input
 type Output
   = Array Json
 
-run :: Expression -> Input -> Either String Output
-run Identity input = Right input
+run :: Expression -> Environment Expression -> Input -> Either String Output
+run Identity _ input = Right input
 
-run (Accessor _ path) input =
+run (Accessor _ path) _ input =
   traverse (Json.atPath jsonPath) input
     # map Array.concat
   where
   jsonPath = toJsonPath path
 
-run (Pipe l r) input = run l input >>= run r
+run (Pipe l r) env input = run l env input >>= run r env
 
-run (Literal json) _ = Right [ json ]
+run (Literal json) _ _ = Right [ json ]
 
-run (ArrayConstructor expression) input = maybe emptyArray construct expression
+run (ArrayConstructor expression) env input = maybe emptyArray construct expression
   where
   construct exp =
-    run exp input
+    run exp env input
       # map Json.buildArray
       # map Array.singleton
 
   emptyArray = Right [ Json.emptyArray ]
 
-run (Comma l r) input = do
-  lOutput <- run l input
-  rOutput <- run r input
+run (Comma l r) env input = do
+  lOutput <- run l env input
+  rOutput <- run r env input
   pure $ lOutput <> rOutput
 
-run (ObjectConstructor []) _ = pure [ Json.emptyObject ]
+run (ObjectConstructor []) _ _ = pure [ Json.emptyObject ]
 
-run (ObjectConstructor keyValuePairs) input = expandKeyValuePairs keyValuePairs input >>= traverse Json.buildObject
+run (ObjectConstructor keyValuePairs) env input = expandKeyValuePairs keyValuePairs env input >>= traverse Json.buildObject
 
-run (Update l r) inputs = do
+run (Update l r) env inputs = do
   jsonPaths <- toJsonPaths l
-  traverse (runUpdates jsonPaths r) inputs
+  traverse (runUpdates jsonPaths r env) inputs
 
-run (Apply _fn) _inputs = do
-  Left "boom - implement apply"
+run (Apply functionName) env input = do
+  { body, environment } <-
+    Env.getFunction functionName [] env
+      # note ("Function " <> functionName <> " could not be found - is it defined?")
+  run body environment input
 
-runUpdates :: Array Json.Path -> Expression -> Json -> Either String Json
-runUpdates paths rExp input = foldl runUpdate (pure input) paths
+runUpdates :: Array Json.Path -> Expression -> Environment Expression -> Json -> Either String Json
+runUpdates paths rExp env input = foldl runUpdate (pure input) paths
   where
   runUpdate :: Either String Json -> Json.Path -> Either String Json
   runUpdate updatedJson path =
     updatedJson
       >>= Json.update path (runRightExpression >=> pickFirstOutput)
 
-  runRightExpression json = run rExp [ json ]
+  runRightExpression json = run rExp env [ json ]
 
   pickFirstOutput = Array.head >>> note "The right hand side of an update assignment must return at least one value"
 
-expandKeyValuePairs :: Array (KeyValuePair) -> Input -> Either String (Array (Array (Tuple Json Json)))
-expandKeyValuePairs arr input =
+expandKeyValuePairs :: Array (KeyValuePair) -> Environment Expression -> Input -> Either String (Array (Array (Tuple Json Json)))
+expandKeyValuePairs arr env input =
   -- Would love to find a way to do this that's easier to grasp, but until then, here's an attempt at explaining:
   -- we start with an array of expressions for all key-values, like so:
   --    `[(K1exp, V1exp), (K2exp, V2exp), ...]`
@@ -83,8 +88,8 @@ expandKeyValuePairs arr input =
   where
   expand (Tuple keyExp valExp) =
     Tuple
-      <$> run keyExp input
-      <*> run valExp input
+      <$> run keyExp env input
+      <*> run valExp env input
 
   combineSingleKeyValues =
     map

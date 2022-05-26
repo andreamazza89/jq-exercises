@@ -75,14 +75,6 @@ parserConfig p infixToKeep =
           # map snd
     }
 
--- Takes an expression parser and tries to parse an Environment before the Expression, then puts
--- them together into a ParserOutput. The Environment defaults to empty if not present.
-withParseEnvironment :: Parser String Expression -> JqParser
-withParseEnvironment p = do
-  environment <- environmentParser p
-  expression <- p
-  pure (Tuple expression environment)
-
 environmentParser :: Parser String Expression -> Parser String (Environment Expression)
 environmentParser p = do
   try functionDefinitionParser <|> pure Env.empty
@@ -124,8 +116,7 @@ literalParser = do
 
 functionApplicationParser :: Parser String Expression
 functionApplicationParser = do
-  functionName <- ident
-  pure $ Apply (Tuple functionName 0)
+  map Apply ident
 
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
 arrayConstructorParser p = try emptyArray <|> try arrayWithItems
