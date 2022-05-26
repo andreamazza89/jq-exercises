@@ -15,6 +15,7 @@ import Data.Array (length)
 import Data.Map (Map)
 import Data.Map (empty, insert, lookup) as Map
 import Data.Maybe (Maybe)
+import Data.Show (show)
 import Data.Tuple (Tuple(..))
 import Prelude (class Eq, class Show, map, (#))
 
@@ -53,8 +54,8 @@ type JqFunction expression
 
 derive instance environmentEq :: (Eq exp) => Eq (Environment exp)
 
-instance Show (Environment env) where
-  show _ = "TODO - better show instance"
+instance Show env => Show (Environment env) where
+  show (Environment env) = show env
 
 empty :: forall exp. Environment exp
 empty = Environment { functions: Map.empty }

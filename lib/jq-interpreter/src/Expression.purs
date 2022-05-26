@@ -16,7 +16,7 @@ import Data.Array.NonEmpty (NonEmptyArray, singleton, toArray)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Data.String (joinWith)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple)
 import Environment (FunctionName)
 import Json (Json)
 import Json (Path, Target, key, everyItem, index) as Json

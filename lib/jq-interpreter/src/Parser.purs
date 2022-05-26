@@ -38,7 +38,7 @@ parse input =
 
 parser :: JqParser
 parser = do
-  exp <-
+  parserOutput <-
     fix
       ( \p -> do
           env <- environmentParser (map fst p)
@@ -46,7 +46,7 @@ parser = do
           pure (Tuple expression env)
       )
   _ <- eof
-  pure exp
+  pure parserOutput
 
 parserConfig :: Parser String Expression -> Array String -> ParserConfig Expression
 parserConfig p infixToKeep =
