@@ -8,8 +8,8 @@ import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Environment (Environment)
-import Environment (Environment)
-import Environment (addFunction, empty) as Env
+import Environment (Environment, FunctionOptions)
+import Environment (empty, fromFunction) as Env
 import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
@@ -281,11 +281,14 @@ main = do
             ]
     describe "Function application" do
       it "simple identity function" do
-        testWithEnv (apply "foo") (Env.addFunction ({ name: "foo", arity: 0, body: identity }) Env.empty) 
+        testWithEnv (apply "foo") (Env.fromFunction fooIdentity)
           """
             "magique"
           """
           [ "\"magique\"" ]
+
+fooIdentity :: FunctionOptions Expression
+fooIdentity = { name: "foo", arity: 0, body: identity }
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
 test expression input expectedOutput = testWithEnv expression Env.empty input expectedOutput

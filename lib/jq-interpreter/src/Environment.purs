@@ -1,12 +1,12 @@
 module Environment
-  ( Environment(..) -- TODO - make me opaque pleaseeeee?
+  ( Environment
   , Arity
   , FunctionOptions
   , FunctionArgs
   , FunctionKey
   , FunctionName
   , JqFunction
-  , addFunction
+  , fromFunction
   , getFunction
   , empty
   ) where
@@ -21,8 +21,6 @@ import Prelude (class Eq, class Show, map, (#))
 data Environment expression
   = Environment { functions :: Map FunctionKey expression }
 
-------------------------------
--- Possibly extract Function stuff into its own file?
 type FunctionKey
   = Tuple FunctionName Arity
 
@@ -53,9 +51,6 @@ type JqFunction expression
     , environment :: Environment expression
     }
 
--- End of function stuff
-------------------------------
-
 derive instance environmentEq :: (Eq exp) => Eq (Environment exp)
 
 instance Show (Environment env) where
@@ -64,13 +59,10 @@ instance Show (Environment env) where
 empty :: forall exp. Environment exp
 empty = Environment { functions: Map.empty }
 
-addFunction :: forall exp. FunctionOptions exp -> Environment exp -> Environment exp
-addFunction { name, arity, body } (Environment env) =
-  Environment
-    ( env
-        { functions = Map.insert (Tuple name arity) (body) env.functions
-        }
-    )
+fromFunction :: forall exp. FunctionOptions exp -> Environment exp
+fromFunction { name, arity, body }  =
+  Environment { functions: Map.insert (Tuple name arity) (body) Map.empty }
+
 
 getFunction :: forall exp. String -> FunctionArgs exp -> Environment exp -> Maybe (JqFunction exp)
 getFunction name arguments (Environment { functions }) =

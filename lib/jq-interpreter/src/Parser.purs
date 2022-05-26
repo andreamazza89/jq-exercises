@@ -4,7 +4,6 @@ module Parser
   ) where
 
 import Utils.Parsing
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
@@ -18,7 +17,7 @@ import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
 import Environment (Environment)
-import Environment (addFunction, empty) as Env
+import Environment (empty, fromFunction) as Env
 import Expression (Expression(..), KeyValuePair, Over(..), Target(..), accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
@@ -85,7 +84,7 @@ environmentParser p = do
     _ <- spaced colon
     expression <- p
     _ <- spaced semiColon
-    pure (Env.addFunction ({ name: functionName, arity: 0, body: expression }) Env.empty)
+    pure $ Env.fromFunction { name: functionName, arity: 0, body: expression }
 
 allInfixParsers :: Array String
 allInfixParsers =
