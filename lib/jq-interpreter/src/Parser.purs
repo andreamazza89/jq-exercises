@@ -16,35 +16,46 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
-import Expression (Expression(..), Over(..), Target(..), KeyValuePair, accessByKeyName)
+import Environment (Environment)
+import Environment (empty, fromFunction) as Env
+import Expression (Expression(..), KeyValuePair, Over(..), Target(..), accessByKeyName)
 import Json as Json
 import Prelude (bind, flip, pure, (#), ($), (>>>))
 import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
 import Text.Parsing.Parser.Combinators (many1, optional, try)
 import Text.Parsing.Parser.String (eof, satisfy)
 
-parse :: String -> Either String Expression
+type JqParser
+  = Parser String ParserOutput
+
+type ParserOutput
+  = Tuple Expression (Environment Expression)
+
+parse :: String -> Either String ParserOutput
 parse input =
   runParser input parser
     # lmap parseErrorMessage
 
-parser :: Parser String Expression
+parser :: JqParser
 parser = do
-  exp <-
+  parserOutput <-
     fix
-      ( \p ->
-          expressionParser $ parserConfig p allInfixParsers
+      ( \p -> do
+          env <- environmentParser (map fst p)
+          expression <- expressionParser $ parserConfig (map fst p) allInfixParsers
+          pure (Tuple expression env)
       )
   _ <- eof
-  pure exp
+  pure parserOutput
 
-parserConfig :: Parser String Expression -> (Array String) -> ParserConfig Expression
+parserConfig :: Parser String Expression -> Array String -> ParserConfig Expression
 parserConfig p infixToKeep =
   let
     allPrefix =
       [ parenthesesParser p
       , objectConstructorParser p
       , arrayConstructorParser p
+      , functionApplicationParser
       , accessorParser
       , identityParser
       , literalParser
@@ -62,6 +73,18 @@ parserConfig p infixToKeep =
           # Array.filter (fst >>> flip elem infixToKeep)
           # map snd
     }
+
+environmentParser :: Parser String Expression -> Parser String (Environment Expression)
+environmentParser p = do
+  try functionDefinitionParser <|> pure Env.empty
+  where
+  functionDefinitionParser = do
+    _ <- spaced def
+    functionName <- ident
+    _ <- spaced colon
+    expression <- p
+    _ <- spaced semiColon
+    pure $ Env.fromFunction { name: functionName, arity: 0, body: expression }
 
 allInfixParsers :: Array String
 allInfixParsers =
@@ -90,6 +113,10 @@ literalParser = do
     # map Literal
     # spaced
 
+functionApplicationParser :: Parser String Expression
+functionApplicationParser = do
+  map Apply ident
+
 arrayConstructorParser :: Parser String Expression -> Parser String Expression
 arrayConstructorParser p = try emptyArray <|> try arrayWithItems
   where
@@ -110,7 +137,7 @@ objectConstructorParser p =
   where
   keyValueParser :: Parser String KeyValuePair
   keyValueParser = do
-    key <- p <|> unquotedString
+    key <- unquotedString <|> p
     _ <- colon
     value <- objectValueParser p
     pure $ Tuple key value

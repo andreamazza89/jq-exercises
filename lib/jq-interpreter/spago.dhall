@@ -5,6 +5,7 @@
   , "bifunctors"
   , "control"
   , "effect"
+  , "debug"
   , "either"
   , "exceptions"
   , "foldable-traversable"

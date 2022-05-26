@@ -7,6 +7,7 @@ module Helpers.Expression
   , accessByKeyNames
   , accessor
   , allItems
+  , apply
   , atIndex
   , atKey
   , comma
@@ -26,7 +27,9 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (fromArray, singleton) as NE
 import Data.Functor (map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Expression (Expression(..), Over(..), Target(..), KeyValuePair)
+import Data.Tuple (Tuple(..))
+import Environment (FunctionArgs, FunctionKey, FunctionName, Arity)
+import Expression (Expression(..), KeyValuePair, Over(..), Target(..))
 import Json (Json)
 import Prelude (($), (>>>))
 
@@ -88,3 +91,6 @@ update :: Expression -> Expression -> Expression
 update = Update
 
 infixl 5 update as |=
+
+apply :: FunctionName -> Expression
+apply name = Apply name

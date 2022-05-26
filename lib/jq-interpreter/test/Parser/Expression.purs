@@ -1,16 +1,16 @@
-module Test.Parser where
+module Test.Parser.Expression where
 
 import Helpers.Expression
 
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst)
 import Effect.Exception (Error)
 import Expression (Expression)
 import Parser (parse)
-import Prelude (Unit, ($), discard, pure, unit)
+import Prelude (Unit, ($), discard, map, pure, unit)
 import Test.Helpers.Json (num, str)
-import Test.Spec (Spec, describe, it)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual)
 
 main :: Spec Unit
@@ -102,12 +102,15 @@ main = do
     describe "Assignment" do
       it "update assignment" do
         testParser ". |= ." $ identity |= identity
+    describe "Function Application" do
+      it "simple function application" do
+        testParser "def foo: .; foo" $ apply "foo"
     describe "Miscellaneous" do
-      it "spurious character after a valid expression are not allowed" do
+      it "spurious characters after a valid expression are not allowed" do
         testFailure ". | . ~~~~~~~~"
 
 testParser :: forall a. MonadThrow Error a => String -> Expression -> a Unit
-testParser source expected = parse source `shouldEqual` Right expected
+testParser source expected = (map fst (parse source)) `shouldEqual` Right expected
 
 testFailure :: forall a. MonadThrow Error a => String -> a Unit
 testFailure expression = case parse expression of

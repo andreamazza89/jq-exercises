@@ -1,11 +1,15 @@
 module Test.Interpreter where
 
 import Helpers.Expression
+
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
+import Environment (Environment)
+import Environment (Environment, FunctionOptions)
+import Environment (empty, fromFunction) as Env
 import Expression (Expression)
 import Interpreter (run) as Interpreter
 import Json as Json
@@ -275,17 +279,30 @@ main = do
               ]
             """
             ]
+    describe "Function application" do
+      it "simple identity function" do
+        testWithEnv (apply "foo") (Env.fromFunction fooIdentity)
+          """
+            "magique"
+          """
+          [ "\"magique\"" ]
+
+fooIdentity :: FunctionOptions Expression
+fooIdentity = { name: "foo", arity: 0, body: identity }
 
 test :: forall a. MonadThrow Error a => Expression -> String -> Array String -> a Unit
-test expression input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of
-  Tuple (Right i) (Right o) -> Interpreter.run expression [ i ] `shouldEqual` (Right o)
+test expression input expectedOutput = testWithEnv expression Env.empty input expectedOutput
+
+testWithEnv :: forall a. MonadThrow Error a => Expression -> Environment Expression -> String -> Array String -> a Unit
+testWithEnv expression env input expectedOutput = case Tuple (parseJson input) (traverse parseJson expectedOutput) of
+  Tuple (Right i) (Right o) -> Interpreter.run expression env [ i ] `shouldEqual` (Right o)
   _ -> fail "failed to parse JSON"
   where
   parseJson s = runParser s Json.parser
 
 testFailure :: forall a. MonadThrow Error a => Expression -> String -> a Unit
 testFailure expression input = case parseJson input of
-  Right i -> case Interpreter.run expression [ i ] of
+  Right i -> case Interpreter.run expression Env.empty [ i ] of
     Left _ -> pure unit
     Right _ -> fail "this test should have seen the interpreter fail"
   _ -> fail "failed to parse JSON"
