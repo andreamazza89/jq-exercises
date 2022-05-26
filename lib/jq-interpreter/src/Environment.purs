@@ -63,7 +63,6 @@ fromFunction :: forall exp. FunctionOptions exp -> Environment exp
 fromFunction { name, arity, body }  =
   Environment { functions: Map.insert (Tuple name arity) (body) Map.empty }
 
-
 getFunction :: forall exp. String -> FunctionArgs exp -> Environment exp -> Maybe (JqFunction exp)
 getFunction name arguments (Environment { functions }) =
   Map.lookup (Tuple name (length arguments)) functions
