@@ -12,6 +12,7 @@ import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.Bifunctor (lmap)
 import Data.CodePoint.Unicode (isAlphaNum)
 import Data.Either (Either)
+import Data.Foldable (fold)
 import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
@@ -76,8 +77,9 @@ parserConfig p infixToKeep =
 
 environmentParser :: Parser String Expression -> Parser String (Environment Expression)
 environmentParser p = do
-  try functionDefinitionParser <|> pure Env.empty
+  try (map fold functionsParser) <|> pure Env.empty
   where
+  functionsParser = many1 functionDefinitionParser
   functionDefinitionParser = do
     _ <- spaced def
     functionName <- ident

@@ -13,11 +13,11 @@ module Environment
 
 import Data.Array (length)
 import Data.Map (Map)
-import Data.Map (empty, insert, lookup) as Map
+import Data.Map (empty, insert, lookup, union) as Map
 import Data.Maybe (Maybe)
 import Data.Show (show)
 import Data.Tuple (Tuple(..))
-import Prelude (class Eq, class Show, map, (#))
+import Prelude (class Monoid, class Eq, class Semigroup, class Show, map, mempty, (#))
 
 data Environment expression
   = Environment { functions :: Map FunctionKey expression }
@@ -56,6 +56,12 @@ derive instance environmentEq :: (Eq exp) => Eq (Environment exp)
 
 instance Show env => Show (Environment env) where
   show (Environment env) = show env
+
+instance Semigroup (Environment env) where
+  append (Environment {functions: f}) (Environment {functions: f'}) = Environment {functions: Map.union f f'}
+
+instance Monoid (Environment env) where
+  mempty = Environment {functions: Map.empty}
 
 empty :: forall exp. Environment exp
 empty = Environment { functions: Map.empty }
