@@ -8,6 +8,7 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array (elem)
 import Data.Array as Array
+import Data.Array.NonEmpty (elemLastIndex)
 import Data.Array.NonEmpty (fromFoldable) as NE
 import Data.Bifunctor (lmap)
 import Data.CodePoint.Unicode (isAlphaNum)
@@ -17,14 +18,15 @@ import Data.Functor (map)
 import Data.Maybe (Maybe(..))
 import Data.String.CodePoints (codePointFromChar)
 import Data.Tuple (Tuple(..), fst, snd)
+import Effect.Exception (throwException)
 import Environment (Environment)
 import Environment (empty, fromFunction) as Env
 import Expression (Expression(..), KeyValuePair, Over(..), Target(..), accessByKeyName)
 import Json as Json
-import Prelude (bind, flip, pure, (#), ($), (>>>))
-import Text.Parsing.Parser (Parser, runParser, parseErrorMessage)
-import Text.Parsing.Parser.Combinators (many1, optional, try)
-import Text.Parsing.Parser.String (eof, satisfy)
+import Prelude (bind, flip, pure, (#), ($), (*>), (==), (>>>))
+import Text.Parsing.Parser (ParseError(..), Parser, parseErrorMessage, region, runParser)
+import Text.Parsing.Parser.Combinators (lookAhead, many1, optional, try)
+import Text.Parsing.Parser.String (eof, satisfy, string)
 
 type JqParser
   = Parser String ParserOutput
@@ -75,11 +77,27 @@ parserConfig p infixToKeep =
           # map snd
     }
 
+-- This is a short-lived type to signal whether we should attempt parsing the environment or default it.
+data EnvironmentParse
+  = ParseEnv
+  | DefaultEnv
+
 environmentParser :: Parser String Expression -> Parser String (Environment Expression)
 environmentParser p = do
-  try (map fold functionsParser) <|> pure Env.empty
+  -- before we try to parse the environment, we look ahead to see if there's anything to parse.
+  -- an alternative would be to just try parse the environment and then set the default on failure,
+  -- however this does not let us discern between a *missing* environment and a *malformed* one.
+  envParse <- try (lookAhead (spaced def) *> pure ParseEnv) <|> pure DefaultEnv
+  case envParse of
+    ParseEnv ->
+      map fold functionsParser
+        # withBadEnvironmentError
+    DefaultEnv -> pure Env.empty
   where
+  withBadEnvironmentError = region (\(ParseError _msg pos) -> ParseError "malformed environment" pos)
+
   functionsParser = many1 functionDefinitionParser
+
   functionDefinitionParser = do
     _ <- spaced def
     functionName <- ident
